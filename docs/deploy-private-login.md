@@ -2,6 +2,8 @@
 
 > 현재 상태: GitHub 저장소에 인증 서버 코드까지 작성했습니다. 네이버 로그인 OAuth 앱 발급, Cloudflare Worker 배포, 실로그인 검증은 **아직 필요**합니다. 서비스가 배포되거나 본인 로그인에 성공한 것으로 오해하지 마세요.
 
+> **2026-10-23 실제 배포 확인:** Worker 주소는 **https://gpt-maps-private.yoonchoi-96.workers.dev** 이며 Cloudflare API에서 정상 배포(100%)를 확인했습니다. \`APP_ORIGIN\`은 \`wrangler.jsonc\`에 공개 환경변수로 설정하여 자동 배포됩니다. NAVER OAuth Login 앱의 Client ID/Client Secret과 \`SESSION_SECRET\`은 아직 Cloudflare에 등록되어 있지 않습니다.
+
 ## 무엇이 달라지나?
 
 - 기존 공개 사이트: https://yoonchoi96-jpg.github.io/gpt-maps/ 는 **여전히 공개**입니다. 지금 단계에서 로그인에 의해 보호되지 않습니다.
@@ -17,7 +19,7 @@
 4. **Worker 이름 \`gpt-maps-private\`** (저장소 최상위 \`wrangler.jsonc\`의 name과 일치해야 함).
 5. Build command: 공란. Deploy command: \`npx wrangler deploy\`. Root directory: 저장소 루트 \`/\`. 브랜치: \`main\`.
 6. 배포 후 Cloudflare가 표시하는 실제 주소를 확인. 형식:
-   \`https://gpt-maps-private.<YOUR_CLOUDFLARE_SUBDOMAIN>.workers.dev\`
+   \`https://gpt-maps-private.yoonchoi-96.workers.dev\`
    이 주소는 **예시 형식**입니다. 대괄호 부분을 그대로 등록하면 안 됩니다.
 
 첫 배포 시 Worker가 503 \`Setup required\`를 반환해도 정상입니다. 아직 인증용 환경변수가 없기 때문입니다.
@@ -33,10 +35,10 @@ Worker 설정: https://developers.cloudflare.com/workers/ci-cd/builds/configurat
 - 사용 API: **네이버 로그인**
 - 필요한 프로필 동의 항목: 최소화. 회원 식별용 \`response.id\`가 핵심입니다.
 - 서비스 환경: **PC 웹**.
-- 서비스 URL: 1단계에서 배포된 **실제** Cloudflare Worker URL.
+- 서비스 URL: **https://gpt-maps-private.yoonchoi-96.workers.dev**.
 - 네이버 로그인 Callback URL: \`<실제 Worker URL>/auth/callback\`.
 
-예시: \`https://gpt-maps-private.example.workers.dev/auth/callback\`
+예시: \`https://gpt-maps-private.yoonchoi-96.workers.dev/auth/callback\`
 
 Callback URL은 정확히 일치해야 합니다. 네이버 클라우드 **Maps Client ID**(\`napr2ensb6\`)와 로그인용 **NAVER Developers Client ID**는 **완전히 별도**입니다.
 
@@ -83,7 +85,7 @@ https://console.ncloud.com/maps/application
 
 기존 \`Dynamic Map\` Client ID \`napr2ensb6\`가 허용하는 웹 서비스 URL에 다음 **실제 Worker 원본(origin)**을 추가해야 합니다.
 
-\`https://gpt-maps-private.<YOUR_CLOUDFLARE_SUBDOMAIN>.workers.dev\`
+\`https://gpt-maps-private.yoonchoi-96.workers.dev\`
 
 기존 GitHub Pages 웹 URL과 새 Worker URL을 구분하세요. Cloudflare Origin에 권한을 주지 않으면 OAuth 로그인은 성공해도 지도가 인증 오류로 표시될 수 있습니다.
 
