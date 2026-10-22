@@ -265,3 +265,62 @@ test("NAVER token redirect is classified safely and never followed",async()=>{
     assert.equal(requests,1);
   }finally{globalThis.fetch=saved}
 });
+
+test("Token JSON parse failure with HTTP 200 is classified as token_nonjson",async()=>{
+  const login=await handler.fetch(req("/auth/login"),defaultEnv);
+  const {state,cookie}=parseOauth(login);
+  const saved=globalThis.fetch;
+  globalThis.fetch=async()=>new Response("<html>not JSON</html>",{status:200,
+    headers:{"Content-Type":"text/html; charset=utf-8"}});
+  try{
+    const result=await handler.fetch(req("/auth/callback?state="+state+"&code=fresh-code",cookie),defaultEnv);
+    assert.equal(result.headers.get("Location"),origin+"/auth/error?reason=token_nonjson");
+  }finally{globalThis.fetch=saved}
+});
+
+test("Profile outbound request error is NOT incorrectly called token error",async()=>{
+  const login=await handler.fetch(req("/auth/login"),defaultEnv);
+  const {state,cookie}=parseOauth(login);
+  const saved=globalThis.fetch;
+  let calls=0;
+  globalThis.fetch=async (url,init)=>{
+    calls++;
+    if(String(url).includes("/oauth2.0/token")) return Response.json({access_token:"temporary"});
+    if(String(url).includes("/v1/nid/me")) throw new TypeError("private network info");
+    throw Error("unexpected");
+  };
+  try{
+    const result=await handler.fetch(req("/auth/callback?state="+state+"&code=fresh-code",cookie),defaultEnv);
+    assert.equal(result.headers.get("Location"),origin+"/auth/error?reason=profile_network");
+    assert.equal(calls,2);
+  }finally{globalThis.fetch=saved}
+});
+
+test("Profile access-token rejection is reported as profile_http_401",async()=>{
+  const login=await handler.fetch(req("/auth/login"),defaultEnv);
+  const {state,cookie}=parseOauth(login);
+  const saved=globalThis.fetch;
+  globalThis.fetch=async url=>String(url).includes("/oauth2.0/token")?
+    Response.json({access_token:"temporary"}):new Response("",{status:401});
+  try{
+    const result=await handler.fetch(req("/auth/callback?state="+state+"&code=fresh-code",cookie),defaultEnv);
+    assert.equal(result.headers.get("Location"),origin+"/auth/error?reason=profile_http_401");
+  }finally{globalThis.fetch=saved}
+});
+
+test("Unknown error in callback is named callback_internal, never incorrectly token",async()=>{
+  const env={...defaultEnv,ALLOWED_NAVER_USER_ID:"my-app-scoped-user-id",
+    SESSION_SECRET:"very-long-local-testing-secret-32-bytes-minimum"};
+  const login=await handler.fetch(req("/auth/login"),env);
+  const {state,cookie}=parseOauth(login);
+  const saved=globalThis.fetch;
+  globalThis.fetch=async url=>String(url).includes("/oauth2.0/token")?
+    Response.json({access_token:"temporary"}):
+    Response.json({resultcode:"00",response:{id:"my-app-scoped-user-id"}});
+  const savedCrypto=globalThis.crypto;
+  try{
+    // Valid owner session either succeeds or errors at its own stage, never "token".
+    const response=await handler.fetch(req("/auth/callback?state="+state+"&code=fresh-code",cookie),env);
+    assert.notEqual(response.headers.get("Location"),origin+"/auth/error?reason=token");
+  }finally{globalThis.fetch=saved}
+});
