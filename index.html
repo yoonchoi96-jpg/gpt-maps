@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b1721">
+  <meta name="description" content="A free, embeddable personal Naver Maps widget for Notion and beyond.">
+  <title>GPT Maps · Personal map widget</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0b1721;--panel:#112330;--line:#244050;--text:#e9f5f3;--muted:#9cb3bb;--accent:#7be1bf;--dark:#0a151b}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+    body{display:flex;flex-direction:column;min-height:100vh}
+    .top{padding:18px 24px;display:flex;gap:16px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:#0d1c27}
+    .brand{display:flex;gap:12px;align-items:center}.logo{width:37px;height:37px;display:grid;place-items:center;border:1px solid #3e816f;border-radius:12px;background:#163f38;color:var(--accent);font-size:19px}
+    h1{font-size:17px;letter-spacing:.01em;margin:0}.subtitle{font-size:11px;color:var(--muted);margin-top:3px}
+    .right{font-size:12px;color:var(--muted);display:flex;gap:9px;align-items:center}
+    .dot{width:7px;height:7px;background:#ffb95c;border-radius:50%}.dot.ready{background:var(--accent)}
+    main{width:min(1240px,100%);margin:0 auto;flex:1;padding:28px 24px 20px}
+    .intro{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;margin-bottom:19px}.intro h2{font-size:clamp(24px,3vw,36px);font-weight:650;letter-spacing:-.04em;margin:0 0 7px}.intro p{font-size:13px;color:var(--muted);margin:0;line-height:1.6}
+    .pill{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:9px}
+    .board{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:16px;min-height:min(66vh,640px)}
+    .map-frame{position:relative;min-height:440px;border:1px solid var(--line);border-radius:19px;overflow:hidden;background:radial-gradient(circle at 65% 40%,#1d4553,#0c2430 60%,#0b1b27)}
+    #map{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+    .placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:22px;overflow:hidden}
+    .placeholder:before{content:"";position:absolute;inset:-80px;background:repeating-radial-gradient(ellipse at 48% 52%,transparent 0 27px,#608e9127 28px 29px,transparent 30px 56px);transform:rotate(-16deg)}
+    .setup{position:relative;z-index:2;width:min(415px,100%);padding:29px;background:#0d202bec;border:1px solid #355665;border-radius:16px;box-shadow:0 18px 60px #07141a85;backdrop-filter:blur(12px)}
+    .setup h3{font-size:20px;margin:0 0 8px;letter-spacing:-.02em}.setup p{font-size:12px;color:var(--muted);line-height:1.65;margin:0 0 19px}
+    label{display:block;font-size:11px;letter-spacing:.02em;color:#c6d8da;margin-bottom:9px;font-weight:600}
+    input{appearance:none;border:1px solid #38596a;background:#0b1a24;color:white;width:100%;border-radius:9px;padding:12px;font:inherit;font-size:13px;outline:none}
+    input:focus{border-color:var(--accent);box-shadow:0 0 0 2px #7be1bf1c}
+    button{cursor:pointer;font:inherit;border-radius:9px;border:1px solid #38616a;background:#173541;color:var(--text);padding:11px 12px;font-size:12px;font-weight:600;transition:background .14s ease}
+    button:hover{background:#265063}button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    button.primary{background:var(--accent);border-color:var(--accent);color:#0b2724}button.primary:hover{background:#9cead0}
+    .setup button{width:100%;margin-top:12px}
+    .help{display:block;margin-top:13px;font-size:11px;color:var(--muted);line-height:1.6}
+    a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+    .side{background:#0e1f2b;border:1px solid var(--line);border-radius:19px;padding:22px;display:flex;flex-direction:column;gap:15px}
+    .side h3{font-size:14px;margin:0 0 2px}.eyebrow{font-size:11px;color:var(--muted);margin:0 0 12px}
+    .presets{display:flex;flex-direction:column;gap:8px}.presets button{text-align:left;background:#132b37;border-color:#254654;padding:12px 13px}
+    .presets button span{font-size:10px;color:var(--muted);display:block;margin-top:4px;font-weight:400}
+    .divider{height:1px;background:var(--line);margin:2px 0}
+    .stat{display:flex;justify-content:space-between;gap:10px;font-size:11px;color:var(--muted);padding:5px 0}.stat b{font-weight:550;color:var(--text)}
+    .side .actions{margin-top:auto;display:grid;gap:8px}
+    .tip{margin:0;font-size:11px;color:var(--muted);line-height:1.6}
+    .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#214537;border:1px solid #4c9582;color:#e9f5f3;box-shadow:0 8px 35px #0009;border-radius:10px;padding:10px 15px;font-size:12px;z-index:10}
+    footer{font-size:11px;color:#75919b;padding:12px 24px 22px;display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
+    body.embed .top,body.embed .intro,body.embed footer{display:none}
+    body.embed main{padding:0;width:100%;height:100vh}body.embed .board{height:100vh;min-height:0;display:block}body.embed .map-frame{height:100%;border-radius:0;border:none;min-height:0}
+    body.embed .side{display:none}body.embed .setup{max-width:370px}
+    @media(max-width:800px){.board{grid-template-columns:1fr}.side{display:block}.presets{display:grid;grid-template-columns:repeat(3,1fr)}.side .actions{margin-top:15px}.intro{align-items:flex-start}main{padding:24px 16px 18px}.top{padding:15px 16px}}
+    @media(max-width:510px){.presets{grid-template-columns:1fr}.intro h2{font-size:25px}.map-frame{min-height:400px}.setup{padding:22px}.right{font-size:10px}}
+  </style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><div class="logo" aria-hidden="true">⌖</div><div><h1>GPT Maps</h1><div class="subtitle">Personal map workspace</div></div></div>
+  <div class="right"><span id="status-dot" class="dot"></span><span id="status">지도 연결 대기</span></div>
+</header>
+<main>
+  <section class="intro"><div><div class="pill">Location workspace / 01</div><h2>장소를 더 쉽게, 한눈에.</h2><p>네이버 지도를 기반으로 만든 개인용 무료 지도 위젯. Notion에도 넣을 수 있어요.</p></div></section>
+  <section class="board">
+    <div class="map-frame">
+      <div id="map" aria-label="네이버 지도"></div>
+      <div id="placeholder" class="placeholder">
+        <div class="setup">
+          <h3>네이버 지도 연결</h3>
+          <p>네이버 클라우드의 <strong>Dynamic Map Client ID</strong>를 입력하면 지도를 불러옵니다. Client Secret은 절대 입력하지 마세요.</p>
+          <form id="connect-form">
+            <label for="client-id">Maps Client ID (공개용 식별자)</label>
+            <input id="client-id" type="text" required spellcheck="false" autocomplete="off" placeholder="Client ID 입력" maxlength="200">
+            <button type="submit" class="primary">지도 연결하기 ↗</button>
+          </form>
+          <small class="help">허용 Web 서비스 URL: <strong>https://yoonchoi96-jpg.github.io</strong><br><a href="https://console.ncloud.com/maps/application" target="_blank" rel="noopener noreferrer">네이버 클라우드 Maps 콘솔 열기 ↗</a></small>
+        </div>
+      </div>
+    </div>
+    <aside class="side">
+      <div><h3>장소 바로가기</h3><p class="eyebrow">지도가 연결되면 바로 이동할 수 있습니다.</p>
+        <div class="presets">
+          <button data-lat="37.56668" data-lng="126.97841" data-zoom="15" data-title="서울 시청">서울 시청<span>Seoul City Hall</span></button>
+          <button data-lat="37.55719" data-lng="126.92451" data-zoom="15" data-title="홍대입구">홍대입구<span>Hongdae · Seoul</span></button>
+          <button data-lat="37.65365" data-lng="126.76760" data-zoom="14" data-title="일산호수공원">일산호수공원<span>Goyang · Gyeonggi</span></button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div><h3>지도 정보</h3><div class="stat"><span>지도 제공</span><b>NAVER Maps</b></div><div class="stat"><span>지도 중심</span><b id="coords">서울 시청</b></div><div class="stat"><span>저장 방식</span><b>서버 저장 없음</b></div></div>
+      <div class="actions">
+        <button id="share" type="button">현재 지도 공유 링크 복사 ↗</button>
+        <button id="embed" type="button">Notion 임베드 링크 복사 ↗</button>
+        <p class="tip">이 위젯은 공개 정적 웹사이트입니다. Client ID는 웹브라우저에 노출되는 공개 식별자로만 사용하고, 비밀키는 절대 입력하지 마세요.</p>
+      </div>
+    </aside>
+  </section>
+</main>
+<footer><span>GPT Maps · GitHub Pages</span><span>© Map data NAVER · 사용량은 NAVER Cloud 정책에 따름</span><a href="https://github.com/yoonchoi96-jpg/gpt-maps" target="_blank" rel="noopener noreferrer">GitHub ↗</a></footer>
+<script>
+(function () {
+  "use strict";
+  var params = new URLSearchParams(location.search);
+  var initial = {lat:37.56668,lng:126.97841,zoom:15,title:"서울 시청"};
+  function validNum(value,min,max,defaultValue){var n=Number(value);return value!==null && Number.isFinite(n) && n>=min && n<=max?n:defaultValue}
+  var view = {
+    lat:validNum(params.get("lat"),-90,90,initial.lat),
+    lng:validNum(params.get("lng"),-180,180,initial.lng),
+    zoom:Math.round(validNum(params.get("zoom"),6,21,initial.zoom)),
+    title:(params.get("title")||initial.title).slice(0,80)
+  };
+  var map, marker, clientId=(params.get("key")||"").trim();
+  var status=document.getElementById("status");
+  var dot=document.getElementById("status-dot");
+  var placeholder=document.getElementById("placeholder");
+  var coords=document.getElementById("coords");
+  var keyInput=document.getElementById("client-id");
+  var loading=false;
+  if(params.get("embed")==="1")document.body.classList.add("embed");
+  function setStatus(message,ready){status.textContent=message;dot.classList.toggle("ready",Boolean(ready))}
+  function toast(message){var old=document.querySelector(".toast");if(old)old.remove();var el=document.createElement("div");el.className="toast";el.setAttribute("role","status");el.textContent=message;document.body.appendChild(el);setTimeout(function(){el.remove()},3600)}
+  function urlFor(embed){var url=new URL(location.href);url.search="";if(clientId)url.searchParams.set("key",clientId);url.searchParams.set("lat",String(view.lat));url.searchParams.set("lng",String(view.lng));url.searchParams.set("zoom",String(view.zoom));url.searchParams.set("title",view.title);if(embed)url.searchParams.set("embed","1");return url.toString()}
+  function writeUrl(){history.replaceState(null,"",urlFor(document.body.classList.contains("embed")))}
+  function move(next){view=next;coords.textContent=next.title;if(map&&window.naver&&naver.maps){var pos=new naver.maps.LatLng(next.lat,next.lng);map.setCenter(pos);map.setZoom(next.zoom);marker.setPosition(pos);marker.setTitle(next.title);writeUrl()}else{toast("Client ID를 연결하면 지도가 표시됩니다.")}}
+  function draw(){
+    if(!window.naver||!naver.maps){setStatus("지도 SDK 로드 실패",false);loading=false;toast("지도 SDK를 불러오지 못했습니다.");return}
+    try{
+      map=new naver.maps.Map("map",{center:new naver.maps.LatLng(view.lat,view.lng),zoom:view.zoom,scaleControl:true});
+      marker=new naver.maps.Marker({position:new naver.maps.LatLng(view.lat,view.lng),map:map,title:view.title});
+      placeholder.style.display="none";
+      coords.textContent=view.title;setStatus("지도 연결됨",true);
+      writeUrl();
+    }catch(e){setStatus("지도 생성 오류",false);toast("지도 생성에 실패했습니다. 설정을 확인하세요.")}
+    loading=false;
+  }
+  function connect(id){
+    id=id.trim();
+    if(!/^[A-Za-z0-9_-]{5,200}$/.test(id)){toast("Client ID 형식을 확인해 주세요. Client Secret은 입력하지 마세요.");return}
+    if(loading)return;
+    clientId=id;keyInput.value=id;setStatus("지도 불러오는 중",false);loading=true;writeUrl();
+    window.navermap_authFailure=function(){setStatus("네이버 지도 인증 실패",false);loading=false;toast("Dynamic Map 활성화 및 허용 URL을 확인해 주세요.")};
+    if(window.naver&&window.naver.maps){draw();return}
+    var script=document.createElement("script");script.src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId="+encodeURIComponent(id);
+    script.async=true;script.onload=draw;script.onerror=function(){loading=false;setStatus("지도 SDK 로드 실패",false);toast("네이버 지도 스크립트를 불러오지 못했습니다.")};document.head.appendChild(script);
+  }
+  document.getElementById("connect-form").addEventListener("submit",function(e){e.preventDefault();connect(keyInput.value)});
+  document.querySelectorAll("[data-lat]").forEach(function(btn){btn.addEventListener("click",function(){move({lat:Number(btn.dataset.lat),lng:Number(btn.dataset.lng),zoom:Number(btn.dataset.zoom),title:btn.dataset.title})})});
+  async function copyUrl(embed){var value=urlFor(embed);try{await navigator.clipboard.writeText(value);toast(embed?"Notion 임베드 링크를 복사했어요.":"공유 링크를 복사했어요.")}catch(e){window.prompt("링크를 복사하세요",value)}}
+  document.getElementById("share").addEventListener("click",function(){copyUrl(false)});
+  document.getElementById("embed").addEventListener("click",function(){copyUrl(true)});
+  if(clientId){keyInput.value=clientId;connect(clientId)}else{coords.textContent=view.title}
+})();
+</script>
+</body>
+</html>
