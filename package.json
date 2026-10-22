@@ -1,0 +1,14 @@
+{
+  "name": "gpt-maps",
+  "version": "0.1.0",
+  "private": true,
+  "description": "NAVER Maps widget and owner-only login gateway",
+  "scripts": {
+    "test": "node --test worker/tests/*.test.mjs",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
