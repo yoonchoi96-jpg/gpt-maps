@@ -102,8 +102,11 @@ test("Other authenticated NAVER account receives no session and cannot see map",
   try{
     const res=await handler.fetch(req("/auth/callback?state="+state+"&code=valid-code",cookie),defaultEnv);
     assert.equal(mock.calls(),2);
-    assert.equal(res.status,303);
-    assert.equal(res.headers.get("Location"),origin+"/denied");
+    assert.equal(res.status,403);
+    const deniedHtml=await res.text();
+    assert.match(deniedHtml,/someone-else/);
+    assert.match(deniedHtml,/네이버 계정이 일치하지 않습니다/);
+    assert.doesNotMatch(deniedHtml,/my-app-scoped-user-id/);
     assert.ok(!res.headers.get("Set-Cookie").includes("__Host-gptmaps_session="));
   } finally {mock.restore()}
 });
