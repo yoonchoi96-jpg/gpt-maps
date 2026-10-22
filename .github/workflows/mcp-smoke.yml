@@ -1,0 +1,22 @@
+name: GPT Maps MCP smoke tests
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/src/**'
+      - 'worker/tests/**'
+      - '.github/workflows/mcp-smoke.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run Node tests
+        run: npm test
