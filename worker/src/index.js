@@ -1,5 +1,6 @@
 import { featureRequest } from "./places-and-routes.js";
 import { handleMcp, mintMcpToken } from "./mcp.js";
+import { handleHub } from "./naver-api-hub.js";
 /**
  * GPT Maps - NAVER owner-only login gateway.
  * Deployed as a Cloudflare Worker WITH worker/public static assets.
@@ -425,6 +426,10 @@ export default {
     if (!isOwner) return url.pathname.startsWith("/api/") ? json({error:"NAVER 로그인이 필요합니다."},401) : redirect(env.APP_ORIGIN + "/auth/login");
     if (url.pathname === "/api/features" || url.pathname === "/api/places" || url.pathname === "/api/directions") {
       return featureRequest(request,env,url);
+    }
+    if (url.pathname === "/api/hub/status" || url.pathname === "/api/hub/search" ||
+        url.pathname === "/api/hub/trend" || url.pathname === "/api/hub/shopping") {
+      return handleHub(request,env,url);
     }
     if (request.method !== "GET" && request.method !== "HEAD") return reply("Method not allowed.", 405);
     const assetResponse = await env.ASSETS.fetch(request);
