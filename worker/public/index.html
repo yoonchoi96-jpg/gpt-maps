@@ -136,8 +136,8 @@
         <button id="notion-url" type="button">Notion에 넣을 개인 지도 링크 복사</button>
         <button id="notion-note" type="button" disabled>선택한 장소 Notion 메모 복사</button>
         <button id="notion-open" type="button">Notion 열기 ↗</button>
-        <button id="embed" type="button" disabled title="네이버 OAuth 인증이 필요한 지도는 Notion 앱에서 iframe 임베드가 작동하지 않을 수 있습니다" style="opacity:.5;cursor:not-allowed">Notion 로그인 지도 직접 임베드 미지원</button>
-        <p class="tip">이 주소는 네이버 계정 인증 후에만 열립니다. 지도 Client ID는 브라우저 공개 식별자이며, 네이버 로그인 비밀키는 서버에만 보관됩니다. 비공개 Notion 임베드는 현재 지원하지 않습니다.</p>
+        <button id="embed" type="button" title="개인 로그인 정보 없이 Notion에 넣을 수 있는 지도 전용 위젯 주소를 복사합니다">Notion 지도 위젯 임베드 주소 복사</button>
+        <p class="tip">이 주소는 네이버 계정 인증 후에만 열립니다. 지도 Client ID는 브라우저 공개 식별자이며, 네이버 로그인 비밀키는 서버에만 보관됩니다. Notion 임베드는 개인 데이터 없는 지도 전용 위젯을 사용하며, 전체 개인 지도 기능은 로그인 후 사용합니다.</p>
       </div>
     </aside>
   </section>
@@ -200,7 +200,7 @@
   }
   document.getElementById("connect-form").addEventListener("submit",function(e){e.preventDefault();connect(keyInput.value)});
   document.querySelectorAll("[data-lat]").forEach(function(btn){btn.addEventListener("click",function(){move({lat:Number(btn.dataset.lat),lng:Number(btn.dataset.lng),zoom:Number(btn.dataset.zoom),title:btn.dataset.title})})});
-  async function copyUrl(embed){var value=urlFor(embed);try{await navigator.clipboard.writeText(value);toast(embed?"Notion 임베드 링크를 복사했어요.":"공유 링크를 복사했어요.")}catch(e){window.prompt("링크를 복사하세요",value)}}
+  async function copyUrl(embed){var value=urlFor(false);if(embed){var publicMap=new URL("https://yoonchoi96-jpg.github.io/gpt-maps/");publicMap.searchParams.set("embed","1");publicMap.searchParams.set("lat",String(view.lat));publicMap.searchParams.set("lng",String(view.lng));publicMap.searchParams.set("zoom",String(view.zoom));publicMap.searchParams.set("title",view.title);value=publicMap.toString()}try{await navigator.clipboard.writeText(value);toast(embed?"Notion 임베드용 공개 지도 링크를 복사했어요. 개인 데이터는 포함되지 않아요.":"공유 링크를 복사했어요.")}catch(e){window.prompt("링크를 복사하세요",value)}}
   document.getElementById("share").addEventListener("click",function(){copyUrl(false)});
   document.getElementById("embed").addEventListener("click",function(){copyUrl(true)});
   window.gptMapsApi={
