@@ -133,6 +133,8 @@
       <div><h3>지도 정보</h3><div class="stat"><span>지도 제공</span><b>NAVER Maps</b></div><div class="stat"><span>지도 중심</span><b id="coords">서울 시청</b></div><div class="stat"><span>저장 방식</span><b>서버 저장 없음</b></div></div>
       <div class="actions">
         <button id="share" type="button">현재 지도 공유 링크 복사 ↗</button>
+        <button id="mcp-token-copy" type="button" title="본인 계정 세션에서 12시간짜리 MCP 인증 토큰을 발급하여 클립보드에 복사합니다">외부 MCP 클라이언트 인증 토큰 발급·복사</button>
+        <p class="tip">ChatGPT Plus의 커스텀 MCP 직접 연결은 현재 미지원입니다. 이 토큰은 다른 호환 MCP 클라이언트 전용이며 비밀번호처럼 보호하세요. 채팅·GitHub에 붙여 넣지 마세요.</p>
         <button id="notion-url" type="button">Notion에 넣을 개인 지도 링크 복사</button>
         <button id="notion-note" type="button" disabled>선택한 장소 Notion 메모 복사</button>
         <button id="notion-open" type="button">Notion 열기 ↗</button>
@@ -211,5 +213,6 @@
 })();
 </script>
 <script src="/features.js" defer></script>
+<script src="/mcp-connect.js" defer></script>
 </body>
 </html>
