@@ -105,7 +105,8 @@
     zoom:Math.round(validNum(params.get("zoom"),6,21,initial.zoom)),
     title:(params.get("title")||initial.title).slice(0,80)
   };
-  var map, marker, clientId=(params.get("key")||"").trim();
+  var defaultClientId="napr2ensb6";
+  var map, marker, clientId=(params.get("key")||defaultClientId).trim();
   var status=document.getElementById("status");
   var dot=document.getElementById("status-dot");
   var placeholder=document.getElementById("placeholder");
@@ -115,7 +116,7 @@
   if(params.get("embed")==="1")document.body.classList.add("embed");
   function setStatus(message,ready){status.textContent=message;dot.classList.toggle("ready",Boolean(ready))}
   function toast(message){var old=document.querySelector(".toast");if(old)old.remove();var el=document.createElement("div");el.className="toast";el.setAttribute("role","status");el.textContent=message;document.body.appendChild(el);setTimeout(function(){el.remove()},3600)}
-  function urlFor(embed){var url=new URL(location.href);url.search="";if(clientId)url.searchParams.set("key",clientId);url.searchParams.set("lat",String(view.lat));url.searchParams.set("lng",String(view.lng));url.searchParams.set("zoom",String(view.zoom));url.searchParams.set("title",view.title);if(embed)url.searchParams.set("embed","1");return url.toString()}
+  function urlFor(embed){var url=new URL(location.href);url.search="";if(clientId&&clientId!==defaultClientId)url.searchParams.set("key",clientId);url.searchParams.set("lat",String(view.lat));url.searchParams.set("lng",String(view.lng));url.searchParams.set("zoom",String(view.zoom));url.searchParams.set("title",view.title);if(embed)url.searchParams.set("embed","1");return url.toString()}
   function writeUrl(){history.replaceState(null,"",urlFor(document.body.classList.contains("embed")))}
   function move(next){view=next;coords.textContent=next.title;if(map&&window.naver&&naver.maps){var pos=new naver.maps.LatLng(next.lat,next.lng);map.setCenter(pos);map.setZoom(next.zoom);marker.setPosition(pos);marker.setTitle(next.title);writeUrl()}else{toast("Client ID를 연결하면 지도가 표시됩니다.")}}
   function draw(){
