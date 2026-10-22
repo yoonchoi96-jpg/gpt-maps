@@ -97,6 +97,32 @@ function cleanText(s) {
   return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;")
     .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
 }
+function deniedOwnerPage(id, expireState) {
+  // Show only the current authenticated user's app-scoped NAVER ID to that
+  // same user; do not disclose the allowlisted account ID or secrets.
+  const safe = cleanText(id);
+  const html = '<!doctype html><html lang="ko"><meta charset="utf-8">'
+    + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<title>GPT Maps - 계정 불일치</title>'
+    + '<body style="font:16px system-ui;margin:40px auto;padding:0 20px;max-width:650px;line-height:1.7;background:#101e28;color:#f2f5f6">'
+    + '<h1>네이버 계정이 일치하지 않습니다</h1>'
+    + '<p>네이버 로그인과 프로필 조회는 성공했습니다. '
+    + '다만 현재 로그인한 계정의 고유 ID와 Cloudflare에 등록된 허용 ID가 정확히 일치하지 않습니다.</p>'
+    + '<p>현재 로그인한 네이버 계정의 앱 고유 ID:</p>'
+    + '<p style="padding:12px;background:#263744;border-radius:8px;overflow-wrap:anywhere"><code>'
+    + safe + '</code></p>'
+    + '<p>현재 ID와 최초 본인 인증 화면의 ID를 비교하세요. '
+    + '다른 계정이라면 네이버에서 올바른 계정으로 로그인하고, '
+    + '같은 계정이라면 Cloudflare의 ALLOWED_NAVER_USER_ID를 수정해야 합니다.</p>'
+    + '<p><a style="color:#88e8cb" href="/auth/login">다른 계정으로 로그인</a></p>'
+    + '<p style="font-size:14px;color:#a0b6c2">허용 계정 ID와 Client Secret은 이 화면에 표시되지 않습니다.</p>'
+    + '</body></html>';
+  const response = new Response(html,{status:403,headers:headers({
+    "Content-Type":"text/html; charset=utf-8",
+  })});
+  response.headers.append("Set-Cookie",expireState);
+  return response;
+}
 function pendingOwnerPage(id) {
   const safe = cleanText(id);
   const html = '<!doctype html><html lang="ko"><meta charset="utf-8">'
@@ -351,7 +377,8 @@ export default {
           page.headers.append("Set-Cookie", expireState);
           return page;
         }
-        if (userId !== env.ALLOWED_NAVER_USER_ID) return redirect(env.APP_ORIGIN + "/denied", [expireState]);
+        if (userId !== env.ALLOWED_NAVER_USER_ID)
+          return deniedOwnerPage(userId, expireState);
         const session = await createSession(userId, env);
         return redirect(env.APP_ORIGIN + "/", [
           expireState, cookie(SESSION_COOKIE, session, SESSION_TTL),
