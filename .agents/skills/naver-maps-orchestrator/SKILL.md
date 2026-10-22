@@ -24,6 +24,15 @@ Use this skill for Korean map/place requests, '네이버 지도에서 찾아줘'
 4. A GitHub or Cloudflare **management** connector can inspect/deploy application code; it does not automatically expose the private `/api/places` endpoint or grant access to the user's NAVER session. Do not pretend to proxy through management tools.
 5. If user requests private NAVER data or real NAVER API response and no authenticated read path exists, explain what is unavailable and present any independently obtained public results separately. Never replace absent API results with invented results.
 
+## NAVER API HUB after the 2026 migration
+
+- In June 2026 NAVER moved new Search/Search Trend/Shopping Insight signups to **NAVER API HUB**, not the old Developers Login app. From 2027-06-30 legacy Search/DataLab keys stop working; Naver Login itself remains separate.
+- Search shopping *product*, book and professional-document APIs ended on **2026-07-31**; do not build or recommend those retired APIs. NAVER **Shopping Insight** click-trend API is a different still-supported service.
+- Existing HUB application name: `Omari` (Naver Cloud console). API HUB requires its **own** Client ID/Secret separate from Login and Maps; do not request them in chat.
+- Config: `NAVER_API_HUB_CLIENT_ID`, `NAVER_API_HUB_CLIENT_SECRET` (Cloudflare secret bindings), plus `NAVER_API_HUB_ENABLED` (currently defaults to `false`). Only enable after NCP per-API daily/monthly hard quotas and owner confirmation.
+- If actually available via an authenticated MCP connection, discover `get_naver_hub_status`, `search_naver_hub`, `get_naver_search_trend`, and `get_naver_shopping_insight`. They read NAVER news/blog/local/cafe/knowledge/encyclopedia/image/web/typo/adult categorization and DataLab trends. They do **not** expose private Naver account lists.
+- If not connected, use real public web/business tools and identify the source accurately. Do not infer that HUB status `configured=true` means an upstream query succeeded.
+- NAVER HUB application free quotas are not a promise of perpetual zero cost; no subscription/paid API should be triggered by this skill. Read [docs/naver-api-hub.md](../../../docs/naver-api-hub.md) for setup and migration.
 ## Choose the smallest useful workflow
 
 ### A. Find and compare places
