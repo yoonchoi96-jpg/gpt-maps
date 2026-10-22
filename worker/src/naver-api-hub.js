@@ -32,7 +32,7 @@ function coordinate(v,min,max){
 function isISO(s,minDate){
   if(typeof s!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(s)||s<minDate)return false;
   const d=new Date(s+"T00:00:00Z");
-  return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===s&&s<=new Date().toISOString().slice(0,10);
+  return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===s&&s<=new Date(Date.now()+9*60*60*1000).toISOString().slice(0,10);
 }
 function basePeriod(args,minDate){
   if(!args||typeof args!=="object"||Array.isArray(args))return null;
