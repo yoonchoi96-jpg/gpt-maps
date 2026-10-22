@@ -86,8 +86,8 @@
       <div><h3>지도 정보</h3><div class="stat"><span>지도 제공</span><b>NAVER Maps</b></div><div class="stat"><span>지도 중심</span><b id="coords">서울 시청</b></div><div class="stat"><span>저장 방식</span><b>서버 저장 없음</b></div></div>
       <div class="actions">
         <button id="share" type="button">현재 지도 공유 링크 복사 ↗</button>
-        <button id="embed" type="button">Notion 임베드 링크 복사 ↗</button>
-        <p class="tip">이 위젯은 공개 정적 웹사이트입니다. Client ID는 웹브라우저에 노출되는 공개 식별자로만 사용하고, 비밀키는 절대 입력하지 마세요.</p>
+        <button id="embed" type="button" disabled title="개인 로그인 지도는 Notion iframe에서 현재 지원되지 않습니다" style="opacity:.5;cursor:not-allowed">Notion 비공개 임베드 추후 지원</button>
+        <p class="tip">이 주소는 네이버 계정 인증 후에만 열립니다. 지도 Client ID는 브라우저 공개 식별자이며, 네이버 로그인 비밀키는 서버에만 보관됩니다. 비공개 Notion 임베드는 현재 지원하지 않습니다.</p>
       </div>
     </aside>
   </section>
