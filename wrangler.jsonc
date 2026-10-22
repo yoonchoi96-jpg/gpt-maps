@@ -11,6 +11,7 @@
   },
   "vars": {
     "APP_ORIGIN": "https://gpt-maps-private.yoonchoi-96.workers.dev",
-    "NAVER_LOGIN_CLIENT_ID": "EACK4pHdDIF6sAq0Q7Vh"
+    "NAVER_LOGIN_CLIENT_ID": "EACK4pHdDIF6sAq0Q7Vh",
+    "NAVER_API_HUB_ENABLED": "false"
   }
 }
