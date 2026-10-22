@@ -221,3 +221,47 @@ test("NAVER unavailable network is distinguished from credential failures",async
     assert.equal(res.headers.get("Location"),origin+"/auth/error?reason=token_network");
   }finally{globalThis.fetch=saved}
 });
+
+
+test("Transport probe never transmits credentials, auth codes, or session data",async()=>{
+  const saved=globalThis.fetch;
+  const seen=[];
+  globalThis.fetch=async (url,init)=>{
+    seen.push({url:String(url),method:init.method,body:init.body||"",redirect:init.redirect});
+    return new Response("",{status:401});
+  };
+  try{
+    const res=await handler.fetch(req("/auth/network-check"),defaultEnv);
+    assert.equal(res.status,200);
+    const body=await res.json();
+    assert.equal(body.diagnostic,"naver_oauth_transport");
+    assert.equal(body.credentials_sent,false);
+    assert.equal(body.checks.length,3);
+    assert.equal(seen.length,3);
+    for(const call of seen){
+      assert.equal(call.redirect,"manual");
+      assert.ok(call.url.startsWith("https://"));
+      assert.ok(!call.url.includes("test-secret-only-on-backend"));
+      assert.ok(!call.body.includes("test-secret-only-on-backend"));
+      assert.ok(!call.body.includes("test-client-id"));
+    }
+  } finally {globalThis.fetch=saved}
+});
+
+test("NAVER token redirect is classified safely and never followed",async()=>{
+  const login=await handler.fetch(req("/auth/login"),defaultEnv);
+  const {state,cookie}=parseOauth(login);
+  const saved=globalThis.fetch;
+  let requests=0;
+  globalThis.fetch=async (_url,init)=>{
+    requests++;
+    assert.equal(init.redirect,"manual");
+    return new Response("",{status:302,headers:{Location:"https://example.invalid/"}})
+  };
+  try{
+    const res=await handler.fetch(req("/auth/callback?state="+state+"&code=valid-code",cookie),defaultEnv);
+    assert.equal(res.status,303);
+    assert.equal(res.headers.get("Location"),origin+"/auth/error?reason=token_redirect");
+    assert.equal(requests,1);
+  }finally{globalThis.fetch=saved}
+});
