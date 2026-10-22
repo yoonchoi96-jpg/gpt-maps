@@ -23,7 +23,7 @@ Site hosting is free on GitHub Free because this repository is public. NAVER Clo
 2. Enable **Dynamic Map** for your application.
 3. Under **Web service URL**, enter the host without repository path: **https://yoonchoi96-jpg.github.io**
 4. Configure conservative use limits and disallow exceeding the caps, where supported.
-5. Under **Authentication Info**, obtain **Client ID** (NOT Client Secret).
+5. Under **Authentication Info**, confirm that the configured public Client ID is `napr2ensb6` (NOT Client Secret).
 
 NAVER Maps JavaScript API v3 uses the public Client ID in the ncpKeyId parameter. Never enter Client Secret in this website, in GitHub, in a URL, or in Notion.
 
@@ -32,12 +32,12 @@ Official SDK: https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=YOUR_CLIENT
 ## Use it
 
 1. Open the GitHub Pages URL.
-2. Paste your **Client ID** into the form and connect the map.
+2. The map will auto-load using the preconfigured public Maps Client ID. Manual entry is only needed to switch to a different Client ID.
 3. Select a sample location.
 4. Click **현재 지도 공유 링크 복사**, or click **Notion 임베드 링크 복사** for the minimal embed layout.
 5. In Notion type /embed and paste the generated link.
 
-The share/embed URL contains the **public Client ID** as a URL query parameter called key, plus map latitude, longitude, zoom, and title. It contains no Client Secret. A public Client ID is inherently exposed on a browser-hosted Dynamic Map; protect it with registered allowed-domain settings and suitable API usage limits.
+Default share/embed links do **not** need a key parameter because the site's public Client ID is bundled in index.html. Links only include a key parameter if someone manually overrides the default Client ID. It contains no Client Secret. A public Client ID is inherently exposed on a browser-hosted Dynamic Map; protect it with registered allowed-domain settings and suitable API usage limits.
 
 Supported URL query parameters: lat, lng, zoom, title, key (public Client ID only), embed=1 (compact view).
 
