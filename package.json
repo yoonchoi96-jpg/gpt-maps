@@ -10,5 +10,9 @@
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
   }
 }
