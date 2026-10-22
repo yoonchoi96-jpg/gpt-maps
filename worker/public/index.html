@@ -53,6 +53,23 @@
     body.embed .side{display:none}body.embed .setup{max-width:370px}
     @media(max-width:800px){.board{grid-template-columns:1fr}.side{display:block}.presets{display:grid;grid-template-columns:repeat(3,1fr)}.side .actions{margin-top:15px}.intro{align-items:flex-start}main{padding:24px 16px 18px}.top{padding:15px 16px}}
     @media(max-width:510px){.presets{grid-template-columns:1fr}.intro h2{font-size:25px}.map-frame{min-height:400px}.setup{padding:22px}.right{font-size:10px}}
+    .feature-section{margin:2px 0 10px;padding:14px;border:1px solid var(--line);border-radius:12px;background:#102b36}
+    .feature-section h3{margin:0 0 7px;font-size:13px}
+    .feature-section p{color:var(--muted);font-size:11px;line-height:1.5;margin:4px 0 10px}
+    .feature-form{display:flex;gap:6px}.feature-form input{min-width:0;flex:1;padding:9px;font-size:12px}
+    .feature-form button{flex:0 0 auto;padding:8px}
+    #feature-state{font-size:11px;line-height:1.5;margin:8px 0;color:var(--muted);overflow-wrap:anywhere}
+    #place-results{margin:0;padding:0;list-style:none;display:grid;gap:6px;max-height:290px;overflow-y:auto}
+    #place-results li{margin:0} .place-item{width:100%;text-align:left;padding:9px 10px}
+    .place-item strong{display:block;color:var(--text);font-size:12px}
+    .place-item span{display:block;font-size:10px;color:var(--muted);margin-top:3px;line-height:1.5}
+    .feature-actions{display:grid;gap:6px}
+    .feature-actions button{width:100%;text-align:center}
+    .feature-actions button:disabled{opacity:.4;cursor:not-allowed}
+    .feature-actions a{font-size:12px}
+    .feature-actions a:not([href]){opacity:.4;pointer-events:none}
+    #selected-place{font-weight:650;color:var(--text);overflow-wrap:anywhere}
+    .side{overflow-wrap:anywhere}
   </style>
 </head>
 <body>
@@ -84,6 +101,27 @@
       </div>
     </div>
     <aside class="side">
+      <section class="feature-section">
+        <h3>네이버 장소 검색</h3>
+        <p>장소명 또는 지역명을 검색하면 결과가 지도에 핀으로 표시돼요. 검색 버튼을 누를 때만 API를 호출합니다.</p>
+        <form id="search-form" class="feature-form">
+          <input id="search-q" type="search" placeholder="예: 일산 카페, 서울시청" autocomplete="off" maxlength="70" minlength="2" required aria-label="검색할 장소">
+          <button type="submit" id="search-submit">검색</button>
+        </form>
+        <div id="feature-state" role="status">검색 결과를 표시할 준비가 됐습니다.</div>
+        <ol id="place-results"></ol>
+      </section>
+      <section class="feature-section">
+        <h3>자동차 길찾기</h3>
+        <p id="selected-place">검색 결과에서 목적지를 선택하세요.</p>
+        <div class="feature-actions">
+          <button id="route-app" type="button" disabled>네이버 지도 앱에서 자동차 길찾기</button>
+          <button id="route-map" type="button" disabled>네이버 지도 웹에서 목적지 검색</button>
+          <button id="route-internal" type="button" disabled hidden>지도에 자동차 경로선 표시 (API)</button>
+          <p id="route-internal-hint">추가 과금을 막기 위해 앱 내 Directions API 경로선은 기본 비활성화입니다.</p>
+          <a id="naver-place-link" target="_blank" rel="noopener noreferrer">선택한 장소 네이버 지도 검색 ↗</a>
+        </div>
+      </section>
       <div><h3>장소 바로가기</h3><p class="eyebrow">지도가 연결되면 바로 이동할 수 있습니다.</p>
         <div class="presets">
           <button data-lat="37.56668" data-lng="126.97841" data-zoom="15" data-title="서울 시청">서울 시청<span>Seoul City Hall</span></button>
@@ -95,7 +133,10 @@
       <div><h3>지도 정보</h3><div class="stat"><span>지도 제공</span><b>NAVER Maps</b></div><div class="stat"><span>지도 중심</span><b id="coords">서울 시청</b></div><div class="stat"><span>저장 방식</span><b>서버 저장 없음</b></div></div>
       <div class="actions">
         <button id="share" type="button">현재 지도 공유 링크 복사 ↗</button>
-        <button id="embed" type="button" disabled title="개인 로그인 지도는 Notion iframe에서 현재 지원되지 않습니다" style="opacity:.5;cursor:not-allowed">Notion 비공개 임베드 추후 지원</button>
+        <button id="notion-url" type="button">Notion에 넣을 개인 지도 링크 복사</button>
+        <button id="notion-note" type="button" disabled>선택한 장소 Notion 메모 복사</button>
+        <button id="notion-open" type="button">Notion 열기 ↗</button>
+        <button id="embed" type="button" disabled title="네이버 OAuth 인증이 필요한 지도는 Notion 앱에서 iframe 임베드가 작동하지 않을 수 있습니다" style="opacity:.5;cursor:not-allowed">Notion 로그인 지도 직접 임베드 미지원</button>
         <p class="tip">이 주소는 네이버 계정 인증 후에만 열립니다. 지도 Client ID는 브라우저 공개 식별자이며, 네이버 로그인 비밀키는 서버에만 보관됩니다. 비공개 Notion 임베드는 현재 지원하지 않습니다.</p>
       </div>
     </aside>
@@ -162,8 +203,13 @@
   async function copyUrl(embed){var value=urlFor(embed);try{await navigator.clipboard.writeText(value);toast(embed?"Notion 임베드 링크를 복사했어요.":"공유 링크를 복사했어요.")}catch(e){window.prompt("링크를 복사하세요",value)}}
   document.getElementById("share").addEventListener("click",function(){copyUrl(false)});
   document.getElementById("embed").addEventListener("click",function(){copyUrl(true)});
+  window.gptMapsApi={
+    getMap:function(){return map},
+    getView:function(){return {lat:view.lat,lng:view.lng,zoom:view.zoom,title:view.title}},
+  };
   if(clientId){keyInput.value=clientId;connect(clientId)}else{coords.textContent=view.title}
 })();
 </script>
+<script src="/features.js" defer></script>
 </body>
 </html>
