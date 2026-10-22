@@ -239,7 +239,7 @@ export async function handleMcp(request,env,ownerSession=false) {
   if(msg.method==="ping")return rpc(msg.id,{});
   if(msg.method==="tools/list")return rpc(msg.id,{tools:tools(env)});
   if(msg.method==="resources/list"||msg.method==="prompts/list")
-    return rpc(msg.id,{[msg.method==="resources/list"?"resources":"prompts":[]});
+    return rpc(msg.id,{[msg.method==="resources/list"?"resources":"prompts"]:[]});
   if(msg.method==="tools/call"){
     if(!msg.params||typeof msg.params.name!=="string")return failure(msg.id,-32602,"Invalid params");
     try{return rpc(msg.id,await callTool(msg.params.name,msg.params.arguments??{},env))}
