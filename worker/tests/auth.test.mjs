@@ -46,6 +46,7 @@ function mockNaverFetch(id) {
       assert.ok(!url.includes("test-secret-only-on-backend"));
       const params=new URLSearchParams(options.body);
       assert.equal(params.get("client_secret"),defaultEnv.NAVER_LOGIN_CLIENT_SECRET);
+      assert.equal(params.get("redirect_uri"),origin+"/auth/callback");
       return Response.json({access_token:"test-access-token"});
     }
     if(url==="https://openapi.naver.com/v1/nid/me"){
@@ -151,4 +152,31 @@ test("Account enrollment cannot auto-authorize whoever signs in first", async()=
     const unauthorized=await handler.fetch(req("/"),env);
     assert.equal(unauthorized.status,303);
   } finally {mock.restore()}
+});
+
+test("NAVER callback errors show a diagnostic page instead of looping", async()=>{
+  const login=await handler.fetch(req("/auth/login"),defaultEnv);
+  const {state,cookie}=parseOauth(login);
+  const callback=await handler.fetch(req("/auth/callback?state="+state+"&error=access_denied",cookie),defaultEnv);
+  assert.equal(callback.status,303);
+  assert.equal(callback.headers.get("Location"),origin+"/auth/error?reason=naver");
+  const error=await handler.fetch(req("/auth/error?reason=naver"),defaultEnv);
+  assert.equal(error.status,400);
+  assert.match(await error.text(),/네이버 로그인 확인 필요/);
+  const legacy=await handler.fetch(req("/auth/login?error=oauth"),defaultEnv);
+  assert.equal(legacy.status,303);
+  assert.equal(legacy.headers.get("Location"),origin+"/auth/error?reason=naver");
+});
+
+test("Token endpoint failure shows token-stage error instead of restarting consent", async()=>{
+  const login=await handler.fetch(req("/auth/login"),defaultEnv);
+  const {state,cookie}=parseOauth(login);
+  const saved=globalThis.fetch;
+  globalThis.fetch=async(url)=>{assert.equal(String(url),"https://nid.naver.com/oauth2.0/token");return new Response("Not authorized",{status:401})};
+  try{
+    const res=await handler.fetch(req("/auth/callback?state="+state+"&code=issued-code",cookie),defaultEnv);
+    assert.equal(res.status,303);
+    assert.equal(res.headers.get("Location"),origin+"/auth/error?reason=token");
+    assert.ok(!res.headers.get("Set-Cookie").includes("__Host-gptmaps_session="));
+  }finally{globalThis.fetch=saved}
 });
