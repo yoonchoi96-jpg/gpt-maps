@@ -153,7 +153,7 @@ async function setup(){
   });
   $("notion-url").addEventListener("click",copyNotionLink);
   $("notion-note").addEventListener("click",copyNotionNote);
-  $("notion-open").addEventListener("click",()=>window.open("https://www.notion.so/","_blank","noopener,noreferrer"));
+  $("notion-open").addEventListener("click",()=>window.open("https://app.notion.com/p/401ec954707481b3bc19e6a349f3dd92?pvs=204","_blank","noopener,noreferrer"));
   $("route-app").disabled=true;$("route-map").disabled=true;$("notion-note").disabled=true;
   $("route-internal").disabled=true;
   try{
