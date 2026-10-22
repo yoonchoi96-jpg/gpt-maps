@@ -77,3 +77,15 @@ Web search fallback: `https://map.naver.com/p/search/<encoded-place-and-address>
 - NAVER Maps: https://api.ncloud-docs.com/docs/application-maps-overview
 - Codex Agent Skills: https://learn.chatgpt.com/docs/customization/overview
 - Agent Skills schema: https://agentskills.io/specification
+
+## NAVER API HUB (2026-10)
+
+The HUB is a DIFFERENT product from the NAVER Developers Login app, and from Naver Maps. See [the HUB setup guide](../../../../docs/naver-api-hub.md).
+
+- Fixed upstream host: `https://naverapihub.apigw.ntruss.com`; server-only headers `X-NCP-APIGW-API-KEY-ID` and `X-NCP-APIGW-API-KEY`. Never expose either credential to browsers/Notion/chat.
+- Cloudflare settings: `NAVER_API_HUB_CLIENT_ID`, `NAVER_API_HUB_CLIENT_SECRET` as secret bindings, `NAVER_API_HUB_ENABLED=false` by default. Owner must configure NCP quotas before activation.
+- Owner endpoints: `/api/hub/status`, `/api/hub/search?type=news&q=...`, `POST /api/hub/trend`, `POST /api/hub/shopping`.
+- New MCP tools: `get_naver_hub_status`, `search_naver_hub`, `get_naver_search_trend`, `get_naver_shopping_insight`. These do not work in a ChatGPT runtime unless connected/authenticated there.
+- Search kinds: news, blog, local, cafe, kin, encyclopedia, image, web, errata, adult. NEWS/BLOG etc list results preserve upstream rank and source links; shopping products/book/document searches are retired.
+- DataLab search trend returns relative search volume (not raw numbers). Shopping insight returns relative clicks (not prices/sales). These require a permitted API HUB application.
+- Legacy search/data APIs new sign-ups blocked since 2026-07-31, legacy end 2027-06-30. NAVER Login separate and unaffected.
