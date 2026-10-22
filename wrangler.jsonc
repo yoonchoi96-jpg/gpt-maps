@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "gpt-maps-private",
   "main": "worker/src/index.js",
-  "compatibility_date": "2026-10-23",
+  "compatibility_date": "2026-10-22",
   "workers_dev": true,
   "assets": {
     "directory": "./worker/public",
