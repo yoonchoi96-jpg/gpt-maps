@@ -183,8 +183,7 @@ function authErrorPage(reason) {
     + '<body style="font:16px system-ui;margin:40px auto;padding:0 20px;max-width:600px;line-height:1.7;background:#101e28;color:#f2f5f6">'
     + '<h1>네이버 로그인 확인 필요</h1><p>'+messages[key]+'</p>'
     + '<p>오류 단계: <code>'+key+'</code></p>'
-    + '<p><a href="/auth/login" style="color:#88e8cb">새 로그인 시도</a> · '
-    + '<a href="/auth/network-check" style="color:#88e8cb">네이버 서버 연결 진단</a></p>'
+    + '<p><a href="/auth/login" style="color:#88e8cb">새 로그인 시도</a></p>'
     + '<p style="font-size:14px;color:#a0b6c2">네이버 앱 Client ID, 서비스 URL 및 Callback URL을 확인하세요. 인증코드나 비밀키는 공유하지 마세요.</p>'
     + '</body></html>';
   return new Response(body,{status:400,headers:headers({"Content-Type":"text/html; charset=utf-8"})});
@@ -277,7 +276,8 @@ export default {
     const problem = checkConfig(env, request);
     if (problem) return reply("Setup required: " + problem, 503);
     if (url.pathname === "/auth/network-check" && request.method === "GET") {
-      return diagnoseNaverNetwork();
+      // Temporary unauthenticated outbound probe was retired after testing.
+      return reply("Diagnostic closed. Start a new NAVER login at /auth/login.", 410);
     }
     if (url.pathname === "/auth/error" && request.method === "GET") {
       return authErrorPage(url.searchParams.get("reason"));
