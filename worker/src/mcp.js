@@ -8,6 +8,7 @@
  * installed into ChatGPT custom MCP connections that require OAuth.
  */
 import { featureRequest } from "./places-and-routes.js";
+import { hubSearch, hubTrend, hubShoppingInsight, hubStatus, HUB_SEARCH_TYPES } from "./naver-api-hub.js";
 
 const VERSION = "2025-06-18";
 const TOKEN_LIFETIME = 12 * 60 * 60;
@@ -121,6 +122,50 @@ export const MCP_TOOLS=[
     annotations:{readOnlyHint:true,openWorldHint:false},
   },
 ];
+const HUB_TOOLS=[
+  {
+    name:"get_naver_hub_status",title:"NAVER API HUB configuration",
+    description:"Check whether NAVER API HUB keys and a safety opt-in are configured, and list supported APIs. Configuration is not proof of active permissions.",
+    inputSchema:objectSchema({}),annotations:{readOnlyHint:true,openWorldHint:false},
+  },
+  {
+    name:"search_naver_hub",title:"Search NAVER via NAVER API HUB",
+    description:"Read source-attributed NAVER API HUB search results (news, blog, local, cafe, kin, encyclopedia, image, web, errata, adult). Disabled until NCP keys, quota cap, and explicit env flag are configured. Product shopping/book/doc search retired July 2026.",
+    inputSchema:objectSchema({
+      type:{type:"string",enum:HUB_SEARCH_TYPES},
+      query:{type:"string",minLength:2,maxLength:75},
+      sort:{type:"string",enum:["sim","date"]},
+    },["type","query"]),
+    annotations:{readOnlyHint:true,openWorldHint:true},
+  },
+  {
+    name:"get_naver_search_trend",title:"NAVER DataLab search-trend",
+    description:"Get relative NAVER search volume trends (0-100, not absolute search volume), for 1–5 keyword groups. Requires NAVER API HUB credentials and opt-in.",
+    inputSchema:objectSchema({
+      startDate:{type:"string",description:"YYYY-MM-DD from 2016-01-01"},
+      endDate:{type:"string",description:"YYYY-MM-DD up to today"},
+      timeUnit:{type:"string",enum:["date","week","month"]},
+      keywordGroups:{type:"array",minItems:1,maxItems:5,items:{
+        type:"object",required:["groupName","keywords"],properties:{
+          groupName:{type:"string"},keywords:{type:"array",items:{type:"string"},minItems:1,maxItems:20},
+        }}},
+    },["startDate","endDate","timeUnit","keywordGroups"]),
+    annotations:{readOnlyHint:true,openWorldHint:true},
+  },
+  {
+    name:"get_naver_shopping_insight",title:"NAVER DataLab shopping click trends",
+    description:"Get relative shopping-click trends by categories or keywords, NOT discontinued NAVER shopping product search, and NOT sales/revenue. Requires NCP limits and HUB opt-in.",
+    inputSchema:objectSchema({
+      kind:{type:"string",enum:["categories","keywords"]},
+      startDate:{type:"string"},endDate:{type:"string"},
+      timeUnit:{type:"string",enum:["date","week","month"]},
+      categories:{type:"array",maxItems:3,items:{type:"object",properties:{name:{type:"string"},param:{type:"string"}},required:["name","param"]}},
+      category:{type:"string"},
+      keywords:{type:"array",maxItems:5,items:{type:"object",properties:{name:{type:"string"},keyword:{type:"string"}},required:["name","keyword"]}},
+    },["kind","startDate","endDate","timeUnit"]),
+    annotations:{readOnlyHint:true,openWorldHint:true},
+  },
+];
 const PAID_ROUTE_TOOL={
   name:"get_naver_driving_route",title:"Get driving route",
   description:"Get a NAVER Cloud Directions5 driving route only when the owner explicitly enabled paid APIs. This call can incur charges; do not use without user approval.",
@@ -133,8 +178,9 @@ const PAID_ROUTE_TOOL={
   annotations:{readOnlyHint:true,openWorldHint:true},
 };
 function tools(env){
+  const base=[...MCP_TOOLS,...HUB_TOOLS];
   return env.ENABLE_PAID_DIRECTIONS==="true"&&env.NAVER_MAPS_CLIENT_SECRET
-    ?[...MCP_TOOLS,PAID_ROUTE_TOOL]:MCP_TOOLS;
+    ?[...base,PAID_ROUTE_TOOL]:base;
 }
 function num(n,min,max){return typeof n==="number"&&Number.isFinite(n)&&n>=min&&n<=max}
 function str(s,max){return typeof s==="string"&&s.length<=max}
@@ -172,6 +218,21 @@ function drivingLinks(args,env){
     route_calculated:false,charged_api_called:false};
 }
 async function callTool(name,args,env){
+  // Status is safe to inspect even before HUB credentials are set.
+  if(name==="get_naver_hub_status")return toolReply(hubStatus(env));
+  if(name==="search_naver_hub"||name==="get_naver_search_trend"||
+      name==="get_naver_shopping_insight"){
+    const definition=HUB_TOOLS.find(t=>t.name===name);
+    if(!definition||!validateArgs(args,definition.inputSchema))
+      return toolReply({error:"Invalid NAVER API HUB tool arguments."},true);
+    let r;
+    if(name==="search_naver_hub")r=await hubSearch(env,args);
+    else if(name==="get_naver_search_trend")r=await hubTrend(env,args);
+    else r=await hubShoppingInsight(env,args);
+    let data;
+    try{data=await r.json()}catch{return toolReply({error:"Invalid HUB response."},true)}
+    return toolReply(data,!r.ok);
+  }
   const def=tools(env).find(t=>t.name===name);
   if(!def)return toolReply({error:"Unknown or disabled tool."},true);
   if(!validateArgs(args,def.inputSchema))
