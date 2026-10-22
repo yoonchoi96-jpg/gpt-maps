@@ -102,6 +102,55 @@
     </div>
     <aside class="side">
       <section class="feature-section">
+        <h3>NAVER API HUB · 통합 검색</h3>
+        <p>뉴스·블로그·카페·지식iN·이미지·웹문서 등을 검색합니다. 인증 및 한도 설정 전에는 호출되지 않습니다.</p>
+        <p id="hub-ready" role="status">API HUB 설정 확인 중...</p>
+        <form id="hub-search-form">
+          <label for="hub-type">검색 종류</label>
+          <select id="hub-type" style="width:100%;margin-bottom:8px;padding:10px;background:#102532;color:#e9f5f3;border:1px solid #38596a;border-radius:8px">
+            <option value="news">뉴스</option>
+            <option value="blog">블로그</option>
+            <option value="local">지역</option>
+            <option value="cafe">카페 글</option>
+            <option value="kin">지식iN</option>
+            <option value="encyclopedia">백과사전</option>
+            <option value="image">이미지</option>
+            <option value="web">웹문서</option>
+            <option value="errata">한영 오타변환</option>
+            <option value="adult">검색어 분류</option>
+          </select>
+          <div class="feature-form">
+            <input id="hub-search-q" type="search" minlength="2" maxlength="75" required autocomplete="off" placeholder="검색어 입력" aria-label="API HUB 검색어">
+            <button id="hub-search-submit" type="submit" disabled>검색</button>
+          </div>
+        </form>
+        <ol id="hub-search-results" style="padding-left:18px;overflow-wrap:anywhere;display:grid;gap:8px"></ol>
+        <details style="margin-top:12px">
+          <summary style="cursor:pointer;font-size:12px">데이터랩 · 검색어 트렌드</summary>
+          <p>상대적 검색량을 비교합니다. 100은 해당 요청에서 최대값이며 실제 검색 건수가 아닙니다.</p>
+          <form id="hub-trend-form" class="feature-actions">
+            <label>검색어 그룹 A<input id="hub-trend-a" required placeholder="예: 일본여행" maxlength="55"></label>
+            <label>검색어 그룹 B<input id="hub-trend-b" required placeholder="예: 대만여행" maxlength="55"></label>
+            <label>시작일<input type="date" id="hub-trend-start" required></label>
+            <label>종료일<input type="date" id="hub-trend-end" required></label>
+            <button id="hub-trend-submit" type="submit" disabled>검색어 트렌드 조회</button>
+          </form>
+          <div id="hub-trend-results" role="status" style="font-size:11px;overflow-wrap:anywhere"></div>
+        </details>
+        <details style="margin-top:12px">
+          <summary style="cursor:pointer;font-size:12px">데이터랩 · 쇼핑인사이트</summary>
+          <p>카테고리 코드와 검색어별 쇼핑 클릭 추이를 조회합니다.</p>
+          <form id="hub-shopping-form" class="feature-actions">
+            <label>쇼핑 카테고리 코드<input id="hub-shopping-category" required placeholder="네이버쇼핑 cat_id 숫자"></label>
+            <label>키워드<input id="hub-shopping-keyword" required maxlength="65" placeholder="예: 운동화"></label>
+            <label>시작일<input type="date" id="hub-shopping-start" required></label>
+            <label>종료일<input type="date" id="hub-shopping-end" required></label>
+            <button id="hub-shopping-submit" type="submit" disabled>쇼핑 클릭 트렌드 조회</button>
+          </form>
+          <div id="hub-shopping-results" role="status" style="font-size:11px;overflow-wrap:anywhere"></div>
+        </details>
+      </section>
+      <section class="feature-section">
         <h3>네이버 장소 검색</h3>
         <p>장소명 또는 지역명을 검색하면 결과가 지도에 핀으로 표시돼요. 검색 버튼을 누를 때만 API를 호출합니다.</p>
         <form id="search-form" class="feature-form">
@@ -214,5 +263,6 @@
 </script>
 <script src="/features.js" defer></script>
 <script src="/mcp-connect.js" defer></script>
+<script src="/naver-hub-ui.js" defer></script>
 </body>
 </html>
