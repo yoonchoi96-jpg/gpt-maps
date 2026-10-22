@@ -1,4 +1,5 @@
 import { featureRequest } from "./places-and-routes.js";
+import { handleMcp, mintMcpToken } from "./mcp.js";
 /**
  * GPT Maps - NAVER owner-only login gateway.
  * Deployed as a Cloudflare Worker WITH worker/public static assets.
@@ -404,8 +405,22 @@ export default {
     }
     if (url.pathname === "/denied") return reply("This NAVER account is not authorized.", 403);
     const isOwner = await authorized(request,env);
+    if (url.pathname === "/mcp") {
+      return handleMcp(request,env,isOwner);
+    }
     if (url.pathname === "/api/me") {
       return json({authenticated:isOwner, owner:isOwner},isOwner?200:401);
+    }
+    if (url.pathname === "/api/mcp-token") {
+      if (!isOwner) return json({error:"NAVER 계정 인증이 필요합니다."},401);
+      if (request.method !== "POST") return reply("Method not allowed",405);
+      // Never allow cross-site browser requests to mint bearer credentials.
+      const origin=request.headers.get("Origin");
+      const site=request.headers.get("Sec-Fetch-Site");
+      if (origin !== env.APP_ORIGIN || (site && site !== "same-origin"))
+        return json({error:"Only the owner website can request a token."},403);
+      const token=await mintMcpToken(env);
+      return json({...token,expires_in:Math.max(0,token.expires_at-Math.floor(Date.now()/1000))});
     }
     if (!isOwner) return url.pathname.startsWith("/api/") ? json({error:"NAVER 로그인이 필요합니다."},401) : redirect(env.APP_ORIGIN + "/auth/login");
     if (url.pathname === "/api/features" || url.pathname === "/api/places" || url.pathname === "/api/directions") {
