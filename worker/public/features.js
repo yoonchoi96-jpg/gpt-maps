@@ -116,9 +116,9 @@ async function showInternalRoute(){
     notice("자동차 "+fmtDistance(data.distance)+" · 약 "+Math.round(data.duration/60000)+"분 · 통행료 "+Number(data.tollFare||0).toLocaleString()+"원");
   }catch(err){notice(String(err.message||"경로 실패"),"#ffb5a8")}
 }
-function currentMapLink(){
+function currentMapLink(place=null){
   const url=new URL(origin+"/");
-  const v=view();
+  const v=place?{lat:place.lat,lng:place.lng,zoom:16,title:place.name}:view();
   for(const [key,val] of Object.entries({lat:v.lat,lng:v.lng,zoom:v.zoom,title:v.title}))
     url.searchParams.set(key,String(val));
   return url.toString();
@@ -138,7 +138,7 @@ function copyNotionNote(){
     "- 분류: "+(selected.category||"미제공"),
     "- 위치: "+selected.lat+", "+selected.lng,
     "- 출발 기준: "+(v.title||"지도 중심"),
-    "- 내 전용 지도: "+currentMapLink(),
+    "- 내 전용 지도: "+currentMapLink(selected),
     "",
     "> NAVER 지역 검색 결과. 이 주소는 본인 계정 인증 후에만 열립니다.",
   ].join("\n");
