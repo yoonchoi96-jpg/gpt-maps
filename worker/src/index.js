@@ -112,6 +112,51 @@ function pendingOwnerPage(id) {
     + '<p><a style="color:#88e8cb" href="/auth/login">다시 로그인</a></p></body></html>';
   return new Response(html, {status: 403, headers: headers({"Content-Type":"text/html; charset=utf-8"})});
 }
+async function diagnoseNaverNetwork() {
+  // Temporary diagnostic endpoint: NEVER sends Client Secret, user codes,
+  // session cookies or access tokens. Fixed allowlisted domains only.
+  const checks = [
+    {name:"naver_login_token_get",url:"https://nid.naver.com/oauth2.0/token",method:"GET"},
+    {name:"naver_login_token_post",url:"https://nid.naver.com/oauth2.0/token",method:"POST"},
+    {name:"naver_profile_get",url:"https://openapi.naver.com/v1/nid/me",method:"GET"},
+  ];
+  const results = [];
+  for(const check of checks) {
+    try {
+      const options = {
+        method:check.method,redirect:"manual",signal:AbortSignal.timeout(5000),
+      };
+      if (check.method === "POST") {
+        options.headers = {"Content-Type":"application/x-www-form-urlencoded"};
+        options.body = "grant_type=diagnostic_invalid";
+      }
+      const response = await fetch(check.url,options);
+      results.push({
+        name:check.name,
+        connected:true,
+        http_status:response.status,
+        redirected:response.status>=300 && response.status<400,
+        // Response bodies and Location URLs are intentionally not exposed.
+      });
+    } catch(error) {
+      const message = String(error?.message||"");
+      results.push({
+        name:check.name,
+        connected:false,
+        error_type:error?.name === "TimeoutError"?"timeout":
+          error?.name === "TypeError"?"fetch_type_error":"other",
+        // Safe here: probes contain no sensitive URL parameters or credentials.
+        // Limit messages to known non-sensitive diagnostic keywords.
+        reason: /redirect/i.test(message)?"redirect_rejected":
+          /timeout|timed out/i.test(message)?"timeout":
+          /tls|ssl|handshake|certificate/i.test(message)?"tls":
+          /dns|resolve|ENOTFOUND/i.test(message)?"dns":"unspecified",
+      });
+    }
+  }
+  return json({diagnostic:"naver_oauth_transport",credentials_sent:false,
+    checks:results,temporary_probe:true});
+}
 function authErrorPage(reason) {
   // Never put NAVER auth codes, access tokens, raw responses, or secrets into the page.
   const messages = {
@@ -126,7 +171,8 @@ function authErrorPage(reason) {
     token_http_401: "네이버 토큰 API가 401 오류를 반환했습니다. 로그인 앱 Client ID/Secret 조합을 확인하세요.",
     token_http_403: "네이버 토큰 API가 403 오류를 반환했습니다. 앱 권한·설정을 확인하세요.",
     token_http_5xx: "네이버 토큰 서버가 일시적으로 오류를 반환했습니다.",
-    token_network: "Cloudflare에서 네이버 토큰 서버에 접속하지 못했습니다.",
+    token_network: "Cloudflare에서 네이버 토큰 서버에 접속하지 못했거나 요청이 리다이렉트되었습니다. 네트워크 진단 페이지로 연결 상태를 확인하세요.",
+    token_redirect: "네이버 토큰 서버가 다른 페이지로 리다이렉트했습니다. 인증정보는 이동된 주소로 전송하지 않았습니다.",
     token_response: "네이버 토큰 응답을 해석할 수 없거나 액세스 토큰이 누락됐습니다.",
     profile: "인증 이후 네이버 사용자 식별자 조회에 실패했습니다.",
   };
@@ -137,7 +183,8 @@ function authErrorPage(reason) {
     + '<body style="font:16px system-ui;margin:40px auto;padding:0 20px;max-width:600px;line-height:1.7;background:#101e28;color:#f2f5f6">'
     + '<h1>네이버 로그인 확인 필요</h1><p>'+messages[key]+'</p>'
     + '<p>오류 단계: <code>'+key+'</code></p>'
-    + '<p><a href="/auth/login" style="color:#88e8cb">새 로그인 시도</a></p>'
+    + '<p><a href="/auth/login" style="color:#88e8cb">새 로그인 시도</a> · '
+    + '<a href="/auth/network-check" style="color:#88e8cb">네이버 서버 연결 진단</a></p>'
     + '<p style="font-size:14px;color:#a0b6c2">네이버 앱 Client ID, 서비스 URL 및 Callback URL을 확인하세요. 인증코드나 비밀키는 공유하지 마세요.</p>'
     + '</body></html>';
   return new Response(body,{status:400,headers:headers({"Content-Type":"text/html; charset=utf-8"})});
@@ -169,11 +216,14 @@ async function exchangeCode(code, state, env) {
       method: "POST",
       headers: {"Content-Type": "application/x-www-form-urlencoded"},
       body: args.toString(),
-      redirect: "error",
+      redirect: "manual",
     });
   } catch {
     throw new Error("token_network");
   }
+  // Never follow a 30x to a different server with OAuth credentials.
+  if (tokenResponse.status >= 300 && tokenResponse.status < 400)
+    throw new Error("token_redirect");
   // Never echo responses, access tokens, auth codes, state, credentials, or
   // untrusted error_description to a browser or into Cloudflare logs.
   let token;
@@ -226,6 +276,9 @@ export default {
     }
     const problem = checkConfig(env, request);
     if (problem) return reply("Setup required: " + problem, 503);
+    if (url.pathname === "/auth/network-check" && request.method === "GET") {
+      return diagnoseNaverNetwork();
+    }
     if (url.pathname === "/auth/error" && request.method === "GET") {
       return authErrorPage(url.searchParams.get("reason"));
     }
@@ -270,7 +323,7 @@ export default {
         const allowedErrors = new Set([
           "profile", "token", "token_credentials", "token_code", "token_request",
           "token_http_400", "token_http_401", "token_http_403", "token_http_5xx",
-          "token_network", "token_response",
+          "token_network", "token_response", "token_redirect",
         ]);
         const reason = allowedErrors.has(error?.message) ? error.message : "token";
         return redirect(env.APP_ORIGIN + "/auth/error?reason=" + reason, [expireState]);
