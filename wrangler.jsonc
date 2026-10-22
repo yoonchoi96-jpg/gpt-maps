@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gpt-maps-private",
+  "main": "worker/src/index.js",
+  "compatibility_date": "2026-10-23",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./worker/public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  }
+}
