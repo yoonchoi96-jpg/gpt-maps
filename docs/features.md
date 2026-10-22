@@ -21,7 +21,7 @@
 ## Notion
 - 별도 비공개 Notion GPT Maps 페이지를 생성했습니다.
 - 지도 링크 복사, 선택 장소 Notion 메모 복사, Notion 페이지 열기 기능을 제공합니다.
-- 직접 iframe 임베드는 로그인 쿠키 문제로 제공하지 않습니다. 진정한 양방향 Notion 자동 저장은 미구현입니다.
+- **공개 지도 전용 위젯**은 Notion 페이지에 실제 임베드했습니다 (`https://yoonchoi96-jpg.github.io/gpt-maps/?embed=1`). 사용자 전용 OAuth 지도·장소 검색·길찾기는 보호된 Worker에서 사용합니다. 양방향 Notion 자동 저장은 미구현입니다.
 - [Notion 공식 임베드 제약](https://www.notion.com/help/embed-and-connect-other-apps)
 
 ## 보안·비용
