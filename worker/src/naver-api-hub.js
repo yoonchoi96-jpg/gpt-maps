@@ -100,8 +100,9 @@ function sourceItem(item,type,index){
 export const HUB_SEARCH_TYPES=TYPES_PUBLIC;
 export function hubStatus(env){
   return {...provider(),configured:Boolean(env.NAVER_API_HUB_CLIENT_ID&&env.NAVER_API_HUB_CLIENT_SECRET),
-    enabled:enabled(env),available_search_types:TYPES_PUBLIC,
-    trend_available:true,shopping_insight_available:true,
+    enabled:enabled(env),supported_search_types:TYPES_PUBLIC,
+    trend_implemented:true,shopping_insight_implemented:true,
+    permissions_verified:false,
     retired_endpoints:["shopping_product_search","book_search","document_search"],
     note:"Configured means credentials are bound, not that NAVER API HUB permissions or API queries are verified. Set a hard NCP application quota before enabling."};
 }
