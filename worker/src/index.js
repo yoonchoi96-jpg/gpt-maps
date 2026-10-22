@@ -118,7 +118,16 @@ function authErrorPage(reason) {
     state: "로그인 세션이 만료됐거나 브라우저 쿠키가 전달되지 않았습니다. 처음부터 다시 로그인하세요.",
     naver: "네이버에서 로그인을 거부하거나 취소했습니다. 네이버 개발자센터의 앱 설정을 확인하세요.",
     missing_code: "네이버에서 인증코드를 전달하지 않았습니다.",
-    token: "네이버 인증코드 교환에 실패했습니다. Client Secret 및 Callback URL 일치 여부를 확인하세요.",
+    token: "네이버 인증코드 교환에 실패했습니다.",
+    token_credentials: "네이버 개발자센터의 로그인용 Client ID와 Client Secret이 일치하지 않습니다. Cloudflare의 Secret을 다시 확인하세요.",
+    token_code: "네이버의 인증코드가 유효하지 않거나 이미 사용됐습니다. 새 로그인에서 다시 시도하세요.",
+    token_request: "네이버가 토큰 요청 형식을 거부했습니다. 서버 설정을 확인하세요.",
+    token_http_400: "네이버 토큰 API가 400 오류를 반환했습니다. 인증 정보 또는 요청 형식을 확인하세요.",
+    token_http_401: "네이버 토큰 API가 401 오류를 반환했습니다. 로그인 앱 Client ID/Secret 조합을 확인하세요.",
+    token_http_403: "네이버 토큰 API가 403 오류를 반환했습니다. 앱 권한·설정을 확인하세요.",
+    token_http_5xx: "네이버 토큰 서버가 일시적으로 오류를 반환했습니다.",
+    token_network: "Cloudflare에서 네이버 토큰 서버에 접속하지 못했습니다.",
+    token_response: "네이버 토큰 응답을 해석할 수 없거나 액세스 토큰이 누락됐습니다.",
     profile: "인증 이후 네이버 사용자 식별자 조회에 실패했습니다.",
   };
   const key = Object.prototype.hasOwnProperty.call(messages,reason) ? reason : "naver";
@@ -145,24 +154,55 @@ function checkConfig(env, request) {
   return null;
 }
 async function exchangeCode(code, state, env) {
+  // NAVER Login OAuth2.0 token endpoint (not the distinct NAVER OIDC endpoint).
+  // The classic OAuth2.0 API accepts grant_type, client_id, client_secret,
+  // authorization code and state. Do not put credentials in URL query strings.
   const args = new URLSearchParams({
     grant_type: "authorization_code",
     client_id: env.NAVER_LOGIN_CLIENT_ID,
     client_secret: env.NAVER_LOGIN_CLIENT_SECRET,
-    redirect_uri: env.APP_ORIGIN + "/auth/callback",
     code, state,
   });
-  const tokenResponse = await fetch("https://nid.naver.com/oauth2.0/token", {
-    method: "POST",
-    headers: {"Content-Type": "application/x-www-form-urlencoded"},
-    body: args.toString(),
-    redirect: "error",
-  });
-  if (!tokenResponse.ok) throw new Error("token");
-  const token = await tokenResponse.json();
-  if (!token || typeof token.access_token !== "string" || !token.access_token) {
+  let tokenResponse;
+  try {
+    tokenResponse = await fetch("https://nid.naver.com/oauth2.0/token", {
+      method: "POST",
+      headers: {"Content-Type": "application/x-www-form-urlencoded"},
+      body: args.toString(),
+      redirect: "error",
+    });
+  } catch {
+    throw new Error("token_network");
+  }
+  // Never echo responses, access tokens, auth codes, state, credentials, or
+  // untrusted error_description to a browser or into Cloudflare logs.
+  let token;
+  try {
+    token = await tokenResponse.json();
+  } catch {
+    if (tokenResponse.status === 401) throw new Error("token_http_401");
+    if (tokenResponse.status === 403) throw new Error("token_http_403");
+    if (tokenResponse.status === 400) throw new Error("token_http_400");
+    if (tokenResponse.status >= 500) throw new Error("token_http_5xx");
+    throw new Error("token_response");
+  }
+  // Error identifiers are checked against known constants, never reflected raw.
+  const error = token && typeof token.error === "string" ? token.error : "";
+  if (error === "unauthorized_client" || error === "invalid_client" || error === "024")
+    throw new Error("token_credentials");
+  if (error === "invalid_grant" || error === "invalid_code")
+    throw new Error("token_code");
+  if (error === "invalid_request")
+    throw new Error("token_request");
+  if (!tokenResponse.ok) {
+    if (tokenResponse.status === 401) throw new Error("token_http_401");
+    if (tokenResponse.status === 403) throw new Error("token_http_403");
+    if (tokenResponse.status === 400) throw new Error("token_http_400");
+    if (tokenResponse.status >= 500) throw new Error("token_http_5xx");
     throw new Error("token");
   }
+  if (!token || typeof token.access_token !== "string" || !token.access_token)
+    throw new Error(error ? "token_request" : "token_response");
   const profileResponse = await fetch("https://openapi.naver.com/v1/nid/me", {
     headers: {
       "Authorization": "Bearer " + token.access_token,
@@ -227,7 +267,12 @@ export default {
           expireState, cookie(SESSION_COOKIE, session, SESSION_TTL),
         ]);
       } catch (error) {
-        const reason = error?.message === "profile" ? "profile" : "token";
+        const allowedErrors = new Set([
+          "profile", "token", "token_credentials", "token_code", "token_request",
+          "token_http_400", "token_http_401", "token_http_403", "token_http_5xx",
+          "token_network", "token_response",
+        ]);
+        const reason = allowedErrors.has(error?.message) ? error.message : "token";
         return redirect(env.APP_ORIGIN + "/auth/error?reason=" + reason, [expireState]);
       }
     }
