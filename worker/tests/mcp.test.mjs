@@ -98,3 +98,45 @@ test("All exposed tools are read-only and directions disabled without explicit o
  assert.ok(MCP_TOOLS.every(x=>x.annotations.readOnlyHint===true));
  assert.ok(!MCP_TOOLS.some(x=>x.name==="get_naver_driving_route"));
 });
+
+test("Full owner login -> token issue -> tools/list works, while forged Origin fails",async()=>{
+ const original=globalThis.fetch;
+ const login=await handler.fetch(new Request(origin+"/auth/login"),env);
+ assert.equal(login.status,303);
+ const naver=new URL(login.headers.get("Location"));
+ const state=naver.searchParams.get("state");
+ const stateCookie=(login.headers.get("Set-Cookie")||"").match(/__Host-gptmaps_oauth=[^;]+/)?.[0];
+ assert.ok(stateCookie);
+ globalThis.fetch=async(url,options)=>{
+   if(String(url)==="https://nid.naver.com/oauth2.0/token")
+     return Response.json({access_token:"dummy-nav-access"});
+   if(String(url)==="https://openapi.naver.com/v1/nid/me")
+     return Response.json({resultcode:"00",response:{id:env.ALLOWED_NAVER_USER_ID}});
+   throw Error("unexpected request");
+ };
+ let sessionCookie;
+ try{
+   const response=await handler.fetch(new Request(origin+"/auth/callback?state="+state+"&code=valid",{
+     headers:{Cookie:stateCookie},
+   }),env);
+   assert.equal(response.status,303);
+   sessionCookie=(response.headers.get("Set-Cookie")||"").match(/__Host-gptmaps_session=[^;]+/)?.[0];
+   assert.ok(sessionCookie);
+ }finally{globalThis.fetch=original;}
+ const proper=await handler.fetch(new Request(origin+"/api/mcp-token",{
+   method:"POST",headers:{Origin:origin,Cookie:sessionCookie,"Content-Type":"application/json"},
+   body:"{}",
+ }),env);
+ assert.equal(proper.status,200);
+ const issued=await proper.json();
+ assert.equal(issued.token_type,"Bearer");
+ assert.ok(issued.expires_in<=43200);
+ const forged=await handler.fetch(new Request(origin+"/api/mcp-token",{
+   method:"POST",headers:{Origin:"https://evil.example",Cookie:sessionCookie},
+ }),env);
+ assert.equal(forged.status,403);
+ const toolsResponse=await handler.fetch(post("tools/list",{},{
+   Authorization:"Bearer "+issued.access_token}),env);
+ assert.equal(toolsResponse.status,200);
+ assert.ok((await toolsResponse.json()).result.tools.length>=4);
+});
