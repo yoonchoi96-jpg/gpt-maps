@@ -1,5 +1,21 @@
 # GPT Maps
 
+## Owner-only NAVER Login (implementation prepared, not deployed)
+
+A separate authenticated Cloudflare Worker has been implemented under worker/src/index.js and worker/public/index.html. This private version verifies the logged-in NAVER account's app-scoped profile ID on the server and denies other accounts.
+
+**Deployment is NOT complete.** The current GitHub Pages website remains public and is NOT protected by NAVER login.
+
+- [Korean step-by-step Cloudflare + NAVER account deployment](docs/deploy-private-login.md)
+- [Authentication source](worker/src/index.js)
+- [Security regression tests](worker/tests/auth.test.mjs)
+- [Worker configuration](wrangler.jsonc)
+
+You must configure an independent NAVER **Login** application, Cloudflare Workers credentials and session secret. The NAVER Maps Client ID does NOT authenticate a NAVER user account.
+
+Protected private views are deliberately not embeddable in Notion yet; cross-site login and iframe authentication require a separate design.
+
+
 A free GitHub Pages website for a personal NAVER Dynamic Map and future Notion embeds.
 
 ## Live site
