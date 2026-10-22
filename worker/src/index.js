@@ -1,3 +1,4 @@
+import { featureRequest } from "./places-and-routes.js";
 /**
  * GPT Maps - NAVER owner-only login gateway.
  * Deployed as a Cloudflare Worker WITH worker/public static assets.
@@ -406,7 +407,10 @@ export default {
     if (url.pathname === "/api/me") {
       return json({authenticated:isOwner, owner:isOwner},isOwner?200:401);
     }
-    if (!isOwner) return redirect(env.APP_ORIGIN + "/auth/login");
+    if (!isOwner) return url.pathname.startsWith("/api/") ? json({error:"NAVER 로그인이 필요합니다."},401) : redirect(env.APP_ORIGIN + "/auth/login");
+    if (url.pathname === "/api/features" || url.pathname === "/api/places" || url.pathname === "/api/directions") {
+      return featureRequest(request,env,url);
+    }
     if (request.method !== "GET" && request.method !== "HEAD") return reply("Method not allowed.", 405);
     const assetResponse = await env.ASSETS.fetch(request);
     const resultHeaders = new Headers(assetResponse.headers);
