@@ -46,7 +46,7 @@ function mockNaverFetch(id) {
       assert.ok(!url.includes("test-secret-only-on-backend"));
       const params=new URLSearchParams(options.body);
       assert.equal(params.get("client_secret"),defaultEnv.NAVER_LOGIN_CLIENT_SECRET);
-      assert.equal(params.get("redirect_uri"),origin+"/auth/callback");
+      assert.equal(params.has("redirect_uri"),false);
       return Response.json({access_token:"test-access-token"});
     }
     if(url==="https://openapi.naver.com/v1/nid/me"){
@@ -176,7 +176,48 @@ test("Token endpoint failure shows token-stage error instead of restarting conse
   try{
     const res=await handler.fetch(req("/auth/callback?state="+state+"&code=issued-code",cookie),defaultEnv);
     assert.equal(res.status,303);
-    assert.equal(res.headers.get("Location"),origin+"/auth/error?reason=token");
+    assert.equal(res.headers.get("Location"),origin+"/auth/error?reason=token_http_401");
     assert.ok(!res.headers.get("Set-Cookie").includes("__Host-gptmaps_session="));
+  }finally{globalThis.fetch=saved}
+});
+
+test("NAVER invalid_client is safely mapped to credentials error without exposing raw message",async()=>{
+  const login=await handler.fetch(req("/auth/login"),defaultEnv);
+  const {state,cookie}=parseOauth(login);
+  const saved=globalThis.fetch;
+  globalThis.fetch=async ()=>new Response(JSON.stringify({
+    error:"invalid_client",error_description:"DO-NOT-LEAK provider raw details"
+  }),{status:401,headers:{"Content-Type":"application/json"}});
+  try{
+    const res=await handler.fetch(req("/auth/callback?state="+state+"&code=issued-code",cookie),defaultEnv);
+    assert.equal(res.status,303);
+    assert.equal(res.headers.get("Location"),origin+"/auth/error?reason=token_credentials");
+    assert.ok(!res.headers.get("Location").includes("DO-NOT-LEAK"));
+    const page=await handler.fetch(req("/auth/error?reason=token_credentials"),defaultEnv);
+    assert.equal(page.status,400);
+    assert.doesNotMatch(await page.text(),/DO-NOT-LEAK/);
+  }finally{globalThis.fetch=saved}
+});
+
+test("NAVER HTTP 200 with invalid_grant body correctly identifies spent auth code",async()=>{
+  const login=await handler.fetch(req("/auth/login"),defaultEnv);
+  const {state,cookie}=parseOauth(login);
+  const saved=globalThis.fetch;
+  globalThis.fetch=async ()=>Response.json({error:"invalid_grant",error_description:"secret"});
+  try{
+    const res=await handler.fetch(req("/auth/callback?state="+state+"&code=old-code",cookie),defaultEnv);
+    assert.equal(res.status,303);
+    assert.equal(res.headers.get("Location"),origin+"/auth/error?reason=token_code");
+  }finally{globalThis.fetch=saved}
+});
+
+test("NAVER unavailable network is distinguished from credential failures",async()=>{
+  const login=await handler.fetch(req("/auth/login"),defaultEnv);
+  const {state,cookie}=parseOauth(login);
+  const saved=globalThis.fetch;
+  globalThis.fetch=async()=>{throw Error("NETWORK-RAW-PRIVATE")};
+  try{
+    const res=await handler.fetch(req("/auth/callback?state="+state+"&code=valid-code",cookie),defaultEnv);
+    assert.equal(res.headers.get("Location"),origin+"/auth/error?reason=token_network");
   }finally{globalThis.fetch=saved}
 });
