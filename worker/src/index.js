@@ -1,6 +1,7 @@
 import { featureRequest } from "./places-and-routes.js";
 import { handleMcp, mintMcpToken } from "./mcp.js";
 import { handleHub } from "./naver-api-hub.js";
+import { handleLife } from "./life-apis.js";
 /**
  * GPT Maps - NAVER owner-only login gateway.
  * Deployed as a Cloudflare Worker WITH worker/public static assets.
@@ -430,6 +431,9 @@ export default {
     if (url.pathname === "/api/hub/status" || url.pathname === "/api/hub/search" ||
         url.pathname === "/api/hub/trend" || url.pathname === "/api/hub/shopping") {
       return handleHub(request,env,url);
+    }
+    if (url.pathname === "/api/life/status" || url.pathname === "/api/life/query") {
+      return handleLife(request,env,url);
     }
     if (request.method !== "GET" && request.method !== "HEAD") return reply("Method not allowed.", 405);
     const assetResponse = await env.ASSETS.fetch(request);
