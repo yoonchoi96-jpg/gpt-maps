@@ -3,7 +3,7 @@
 ## Current status (2026-10-23)
 
 - Implemented on GitHub, owner-only Cloudflare Worker route and remote MCP tool wrappers.
-- Actual NAVER API HUB upstream usage is **NOT ACTIVE** until `NAVER_API_HUB_CLIENT_ID`, `NAVER_API_HUB_CLIENT_SECRET`, and explicit `NAVER_API_HUB_ENABLED=true` are configured. Default is `false` in `wrangler.jsonc`.
+- **Activation update (2026-10-23):** Both HUB credentials are confirmed as Cloudflare `secret_text`; `NAVER_API_HUB_ENABLED=true` and the Cloudflare deployment is at 100%. The user confirmed NCP usage limits are configured, but their exact quotas were not independently inspected. Live NAVER API HUB upstream search permission/results are **not yet verified**.
 - Do not confuse NAVER Developers **Login** Client ID/Secret (`NAVER_LOGIN_*`) with NAVER **API HUB** Client ID/Secret (`NAVER_API_HUB_*`), or NAVER Cloud Maps secret.
 - Do not send credentials in ChatGPT, issue trackers, GitHub source, Notion, URL query, or logs. Configure in Cloudflare secrets.
 
@@ -53,14 +53,14 @@ Search results are limited to 5 (local) or 10 (others); the service preserves NA
 - MCP tools: `get_naver_hub_status`, `search_naver_hub`, `get_naver_search_trend`, `get_naver_shopping_insight`.
 - UI: protected GPT Maps sidebar -> `NAVER API HUB · 통합 검색`, DataLab trend/shopping panels. Buttons remain disabled until configured.
 
-## Required one-time NCP user setup
+## Configuration and activation checklist
 
 1. Open **[NAVER API HUB Application](https://console.ncloud.com/naver-api-hub/application)**, use the existing `Omari` application if applicable, and select the Search and Data Lab APIs that will be used. Verify entitlements in the console.
 2. Set hard **daily + monthly usage limits** from Application -> `한도 및 알림` **before** enabling: suggested modest start search 100 calls/day, 1000/month; Search Trend and Shopping Insight each 20 calls/day, 200/month, subject to NCP minimums. Add alerts (70% and 90%) and recipients. This is guidance, not a claim the quotas were configured.
 3. Copy the **HUB** Client ID and Client Secret into Cloudflare Worker `gpt-maps-private` -> Settings -> Variables and Secrets; add both as **Secret** bindings:
    - `NAVER_API_HUB_CLIENT_ID` (secret_text)
    - `NAVER_API_HUB_CLIENT_SECRET` (secret_text)
-4. Do **not** paste credentials into chat or GitHub. After quotas + secret bindings are confirmed, update `wrangler.jsonc` variable `NAVER_API_HUB_ENABLED` from `false` to `true` (maintains consistency under Wrangler redeploy); deploy.
+4. **Completed 2026-10-23:** Do not paste credentials into chat or GitHub. `NAVER_API_HUB_ENABLED` was switched to `true` after the owner reported quota setup, and deployed. Restore `false` to disable requests.
 5. Open the private map and confirm status is enabled; then manually search a low-volume term once (e.g. `서울시청`). Verify returned `provider=NAVER API HUB` data and actual permissions. One successful status check alone is not an upstream query test.
 6. At the first sign of unexpected charges, set the enabled flag to false in GitHub and deploy, then review NCP Usage Statistics and quotas. Revoking HUB key also blocks calls.
 
