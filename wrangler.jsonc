@@ -12,6 +12,11 @@
   "vars": {
     "APP_ORIGIN": "https://gpt-maps-private.yoonchoi-96.workers.dev",
     "NAVER_LOGIN_CLIENT_ID": "EACK4pHdDIF6sAq0Q7Vh",
-    "NAVER_API_HUB_ENABLED": "true"
+    "NAVER_API_HUB_ENABLED": "true",
+    "OMARI_LIFE_PUBLIC_ENABLED": "false",
+    "OMARI_YOUTUBE_ENABLED": "false",
+    "OMARI_GOOGLE_PLACES_ENABLED": "false",
+    "OMARI_GOOGLE_PLACES_BILLING_APPROVED": "false",
+    "OMARI_HOME_ASSISTANT_ENABLED": "false"
   }
 }
