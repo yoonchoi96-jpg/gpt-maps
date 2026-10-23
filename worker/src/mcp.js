@@ -259,7 +259,7 @@ async function callTool(name,args,env){
     return toolReply({error:"Invalid tool arguments."},true);
   if(name==="get_naver_maps_status")return toolReply({
     authenticated:true,
-    place_search_configured:Boolean(env.NAVER_LOGIN_CLIENT_ID&&env.NAVER_LOGIN_CLIENT_SECRET),
+    place_search_configured:hubStatus(env).enabled,
     paid_directions_enabled:Boolean(env.ENABLE_PAID_DIRECTIONS==="true"&&env.NAVER_MAPS_CLIENT_SECRET),
     tools:tools(env).map(t=>t.name),
     note:"Search API permission can only be validated with an actual query; existing NAVER login does not expose NAVER Maps personal favorites.",

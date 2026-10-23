@@ -4,7 +4,7 @@
 
 ```text
 User → NAVER OAuth login → protected GPT Maps Cloudflare Worker → NAVER Dynamic Map SDK (browser)
-                                              ↳ /api/places → NAVER Developers Local Search
+                                              ↳ /api/places → NAVER API HUB Local Search
                                               ↳ /api/directions → NAVER Cloud Directions5 (disabled unless opt-in)
 Owner → short-lived /api/mcp-token → bearer → /mcp → same server-side search/link tools
 Notion → public map-only GitHub Pages embed (no private user records)
@@ -28,14 +28,14 @@ Notion → public map-only GitHub Pages embed (no private user records)
 | Tool | Input | Output/limits |
 | --- | --- | --- |
 | `get_naver_maps_status` | `{}` | Authorized feature status; not a live NAVER test |
-| `search_naver_places` | `{query: string}` (length 2–70) | Up to 5 NAVER Developers Local Search results (name, address, category, lat/lng). Requires Search entitlement |
+| `search_naver_places` | `{query: string}` (length 2–70) | Up to 5 NAVER API HUB Local Search results (name, address, category, lat/lng). Requires HUB credentials, enabled gate and Local Search entitlement |
 | `create_map_link` | `{latitude, longitude, zoom?, title?}` | Protected map URL showing coordinate; does **not** persist a place |
 | `create_naver_driving_link` | `{start_latitude, start_longitude, destination_latitude, destination_longitude, start_name?, destination_name?}` | NAVER Map mobile app deep link, web-search fallback; no ETA or computed path |
 | `get_naver_driving_route` | start/goal longitude and latitude | Not exposed unless **explicitly paid-enabled** and maps secret available; do not silently turn on |
 
 Existing protected website JSON routes: `/api/me`, `/api/features`, `/api/places?q=`, `/api/directions?start=lng,lat&goal=lng,lat`. `GET /api/places` requires a signed browser session; **management Cloudflare MCP cannot simply call it as the owner**.
 
-Search API: `https://openapi.naver.com/v1/search/local.json` via Worker only. Results are limited to five. NAVER Local Search coordinates `mapx`, `mapy` (when numeric scaled integers) are degrees × 10^7; normalize only if grounded by API output. This endpoint searches public businesses; it does not access the user's private NAVER Maps saved places.
+Search API: `https://naverapihub.apigw.ntruss.com/search/v1/local` via the shared server-side `hubSearch` implementation. Requires both HUB Secrets and `NAVER_API_HUB_ENABLED=true`; never use Login app credentials for place search. Results remain limited to five, in upstream order. Scaled integer `mapx`/`mapy` are normalized to WGS84 degrees; absent/invalid coordinates remain null. This searches public businesses, not personal saved places.
 
 ## Auth scheme
 

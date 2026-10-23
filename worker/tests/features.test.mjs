@@ -5,6 +5,9 @@ import {featureRequest} from "../src/places-and-routes.js";
 const env={
   NAVER_LOGIN_CLIENT_ID:"TEST-PUBLIC-CLIENT",
   NAVER_LOGIN_CLIENT_SECRET:"TEST-PRIVATE-SECRET",
+  NAVER_API_HUB_CLIENT_ID:"TEST-HUB-ID",
+  NAVER_API_HUB_CLIENT_SECRET:"TEST-HUB-SECRET",
+  NAVER_API_HUB_ENABLED:"true",
   NAVER_MAPS_CLIENT_ID:"TEST-MAPS-ID",
 };
 const base="https://gpt-maps-private.example.workers.dev";
@@ -29,8 +32,11 @@ test("NAVER local search converts WGS84 integer coordinates and removes HTML tag
   let calls=0;
   globalThis.fetch=async(url,options)=>{
     calls++;
-    assert.equal(options.headers["X-Naver-Client-Secret"],"TEST-PRIVATE-SECRET");
-    assert.ok(String(url).startsWith("https://openapi.naver.com/v1/search/local.json?"));
+    assert.equal(options.headers["X-NCP-APIGW-API-KEY"],env.NAVER_API_HUB_CLIENT_SECRET);
+    assert.equal(options.headers["X-NCP-APIGW-API-KEY-ID"],env.NAVER_API_HUB_CLIENT_ID);
+    assert.equal(options.headers["X-Naver-Client-Secret"],undefined);
+    assert.equal(options.redirect,"manual");
+    assert.ok(String(url).startsWith("https://naverapihub.apigw.ntruss.com/search/v1/local?"));
     assert.equal(new URL(url).searchParams.get("display"),"5");
     return Response.json({items:[
       {title:"<b>서울 시청</b>",category:"관공서",roadAddress:"서울 중구 세종대로",mapx:1269873882,mapy:375666103},
@@ -56,7 +62,7 @@ test("API search permission denial yields actionable error, not fake empty list"
     const path="/api/places?q=서울시청";
     const response=await featureRequest(request(path),env,new URL(base+path));
     assert.equal(response.status,403);
-    assert.match((await response.json()).error,/검색.*API/);
+    assert.match((await response.json()).error,/NAVER API HUB.*권한/);
   }finally{globalThis.fetch=original;}
 });
 test("Paid Directions5 cannot call upstream with default flags",async()=>{
@@ -87,4 +93,47 @@ test("Paid Directions5 only runs on explicit opt-in and returns reduced geometry
     assert.equal(result.geometry.length,2);
     assert.ok(!JSON.stringify(result).includes("NEVER-SHOW-MAPS-SECRET"));
   }finally{globalThis.fetch=original;}
+});
+
+test("Places use HUB readiness rather than OAuth keys, and fail closed without upstream calls",async()=>{
+  const original=globalThis.fetch;let calls=0;
+  globalThis.fetch=async()=>{calls++;throw Error("unexpected")};
+  try{
+    for(const settings of [{NAVER_API_HUB_ENABLED:"false"},{NAVER_API_HUB_CLIENT_ID:undefined},{NAVER_API_HUB_CLIENT_SECRET:undefined}]){
+      const disabled={...env,...settings};
+      const status=await featureRequest(request("/api/features"),disabled,new URL(base+"/api/features"));
+      assert.equal((await status.json()).places,false);
+      const res=await featureRequest(request("/api/places?q=서울시청"),disabled,new URL(base+"/api/places?q=서울시청"));
+      assert.equal(res.status,503);
+    }
+    assert.equal(calls,0);
+    const noLogin={...env,NAVER_LOGIN_CLIENT_ID:undefined,NAVER_LOGIN_CLIENT_SECRET:undefined};
+    const status=await featureRequest(request("/api/features"),noLogin,new URL(base+"/api/features"));
+    assert.equal((await status.json()).places,true);
+  }finally{globalThis.fetch=original}
+});
+test("Places preserve HUB errors without exposing provider bodies or retrying",async()=>{
+  const original=globalThis.fetch;let calls=0;
+  try{
+    for(const [upstream,expected] of [[401,403],[403,403],[429,429],[500,502]]){
+      globalThis.fetch=async()=>{calls++;return new Response("private-provider-body",{status:upstream})};
+      const res=await featureRequest(request("/api/places?q=서울시청"),env,new URL(base+"/api/places?q=서울시청"));
+      assert.equal(res.status,expected);
+      assert.equal(res.headers.get("Cache-Control"),"no-store");
+      assert.ok(!(await res.text()).includes("private-provider-body"));
+    }
+    assert.equal(calls,4);
+  }finally{globalThis.fetch=original}
+});
+test("Places keep at most five ordered results and reject malformed coordinates",async()=>{
+  const original=globalThis.fetch;
+  globalThis.fetch=async()=>Response.json({items:Array.from({length:7},(_,i)=>({title:`<b>장소${i}</b>`,mapx:i?"127.1":"bad",mapy:i?"37.5":null,address:"지번 주소"}))});
+  try{
+    const res=await featureRequest(request("/api/places?q=서울시청"),env,new URL(base+"/api/places?q=서울시청"));
+    const data=await res.json();assert.equal(data.total,5);
+    assert.deepEqual(data.places.map(x=>x.id),[0,1,2,3,4]);
+    assert.equal(data.places[0].lat,null);assert.equal(data.places[0].lng,null);
+    assert.equal(data.places[1].lat,37.5);assert.equal(data.places[1].address,"지번 주소");
+    assert.equal(data.places[0].name,"장소0");
+  }finally{globalThis.fetch=original}
 });

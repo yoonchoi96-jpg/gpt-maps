@@ -66,7 +66,7 @@ Use this skill for Korean map/place requests, '네이버 지도에서 찾아줘'
 
 - NEVER request, display, log, commit, copy into Notion, or paste into chat: NAVER login Client Secret, NAVER Maps Secret, SESSION_SECRET, session cookies, OAuth callback code, or MCP bearer token. Browser token controls are owner-initiated. Public Client IDs and nonsecret URL schemes are fine.
 - Do not open a public unauthenticated API passthrough or attach authorization secrets to GitHub Pages, browser localStorage, URL query strings, or shared Notion blocks.
-- `NAVER_LOGIN_CLIENT_SECRET` authenticates the **login/search app**; it is not the paid Directions Maps secret. Search requires the NAVER Developers app's `검색` API permission.
+- `NAVER_LOGIN_CLIENT_SECRET` authenticates the **login app** only. Place search uses the separate HUB credentials and explicit enabled gate; it never falls back to Login app keys.
 - Maps Dynamic Map and server-side search may have usage limits/costs. Maintain no-extra-paid-calls policy; Directions5 stays off absent explicit authorization and billing safeguards.
 - When access is missing, say 'not connected here' instead of 'API unavailable globally'. Avoid invented NAVER search results, real-time traffic/ETA, permissions, or successful writes.
 

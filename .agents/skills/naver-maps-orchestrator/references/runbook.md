@@ -16,7 +16,7 @@
 1. **No MCP tool available in agent runtime:** Skill cannot create a connection. Use public business/map provider tools, and report NAVER MCP as not attached to this runtime. Don't expose `/api/places` publicly or route around auth.
 2. **`/mcp` → HTTP 401:** Missing, invalid, revoked or expired bearer. Authorized owner signs in and mints a new short-lived token; never paste it into chat. Note generic HTTP GET of `/mcp` is not a valid POST JSON-RPC smoke test.
 3. **Browser owner login `/denied`:** NAVER app-scoped ID mismatch. Verify only through secure owner-controlled setup; never log user ID or secret into public issues.
-4. **NAVER local Search → 403:** Check the `검색` permission on existing NAVER Developers `Omari` app (not the Cloudflare route). Do not claim NAVER data retrieved.
+4. **NAVER local Search → 403:** Check HUB app credentials and Local Search entitlement; Login app Search permissions do not configure the HUB. Do not claim NAVER data retrieved.
 5. **Search → 429:** Respect quota; no retry flood. Prefer public search for general questions; surface partial results with provenance.
 6. **Map tiles show auth failure:** Check Maps Dynamic Map entitlement and Web service allowed origins in Naver Cloud, including `gpt-maps-private.yoonchoi-96.workers.dev`; login app and Maps SDK IDs are different.
 7. **Notion embed blank:** Confirm embed points to public map-only GitHub Pages URL; map-provider allowed origin may need review. Never disable X-Frame-Options on private owner site solely to make iframe work.

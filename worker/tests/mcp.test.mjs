@@ -10,6 +10,7 @@ const env={
  SESSION_SECRET:"test-local-mcp-signing-key-more-than-32-characters",
  ALLOWED_NAVER_USER_ID:"owner-only-app-user",
  NAVER_LOGIN_CLIENT_ID:"id",NAVER_LOGIN_CLIENT_SECRET:"secret",
+ NAVER_API_HUB_CLIENT_ID:"hub-id",NAVER_API_HUB_CLIENT_SECRET:"hub-secret",NAVER_API_HUB_ENABLED:"true",
  ASSETS:{fetch:async()=>new Response("safe")},
 };
 const post=(method,params={},headers={})=>new Request(origin+"/mcp",{
@@ -88,7 +89,9 @@ test("MCP local-place search reuses NAVER proxy, no secret output",async()=>{
  const token=await mintMcpToken(env);
  const original=globalThis.fetch;
  globalThis.fetch=async(url,opts)=> {
-   assert.equal(opts.headers["X-Naver-Client-Secret"],"secret");
+   assert.equal(opts.headers["X-NCP-APIGW-API-KEY"],env.NAVER_API_HUB_CLIENT_SECRET);
+   assert.equal(new URL(url).pathname,"/search/v1/local");
+   assert.equal(opts.headers["X-Naver-Client-Secret"],undefined);
    return Response.json({items:[{title:"<b>서울시청</b>",roadAddress:"서울 중구",mapx:1269784100,mapy:375666800}]});
  };
  try{
