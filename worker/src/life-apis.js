@@ -68,7 +68,7 @@ function paramsFor(action,args,env){
       return {url:publicUrl("/B551011/KorService2/searchKeyword2",
         {...p,MobileOS:"ETC",MobileApp:"Omari",keyword:args.keyword},env),kind:"public"};
     case "flight_domestic":
-      if(!valid(args.departure,/^[A-Z]{3}$/)||!valid(args.arrival,/^[A-Z]{3}$/))return null;
+      if(!valid(args.departure,/^[A-Z0-9]{3,12}$/)||!valid(args.arrival,/^[A-Z0-9]{3,12}$/))return null;
       return {url:publicUrl("/1613000/DmstcFlightNvgInfo/GetFlightOpratInfoList",
         {...p,depAirportId:args.departure,arrAirportId:args.arrival},env),kind:"public"};
     case "apt_sales":
@@ -82,7 +82,7 @@ function paramsFor(action,args,env){
          args.start>args.end)return null;
       const parts=[env.ECOS_API_KEY,"json","kr","1","10",args.statCode,args.cycle,args.start,args.end];
       if(args.itemCode){if(!valid(args.itemCode,/^[A-Za-z0-9_.]{1,30}$/))return null;parts.push(args.itemCode)}
-      return {url:new URL("https://ecos.bok.or.kr/api/StatisticSearch/"+parts.map(encodeURIComponent).join("/")),kind:"ecos"};
+      return {url:new URL("https://ecos.bok.or.kr/api/StatisticSearch/"+parts.map(encodeURIComponent).join("/")),kind:"ecos",secrets:[env.ECOS_API_KEY]};
     }
     case "youtube_video":
       if(!valid(args.videoId,/^[A-Za-z0-9_-]{11}$/))return null;
@@ -124,7 +124,7 @@ async function fetchBound(spec){
     if(t.length>120000)return fail(502,"Provider response too large.");
     // Never forward upstream headers or query URLs; scrub credentials if upstream echoes them.
     let raw=t;
-    for(const secret of [spec.url.searchParams.get("serviceKey"),spec.url.searchParams.get("key")]){
+    for(const secret of [spec.url.searchParams.get("serviceKey"),spec.url.searchParams.get("key"),...(spec.secrets||[])]){
       if(secret&&secret.length>=4)raw=raw.replaceAll(secret,"[REDACTED]");
     }
     if(spec.kind==="xml")return json({format:"xml",excerpt:raw.slice(0,12000),truncated:raw.length>12000});
