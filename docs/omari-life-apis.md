@@ -19,7 +19,7 @@
 | P0 | 기상청 초단기 실황 `weather_now` | 동일 | 동일 | `baseDate=YYYYMMDD`, `baseTime=HHmm`, `nx`, `ny` (기상청 격자 좌표) |
 | P0 | 에어코리아 측정소 `air_quality` | 동일 | 동일 | `stationName` (측정소명) |
 | P0 | 한국관광공사 국문 TourAPI `tour_search` | 동일 | 동일 | `keyword` 2~60자 |
-| P1 | TAGO 국내선 운항목록 `flight_domestic` | 동일 | 동일 | `departure`, `arrival` (공항코드). **실시간 지연/결항 또는 국제선 조회가 아님** |
+| P1 | TAGO 국내선 운항목록 `flight_domestic` | 동일 | 동일 | `departure`, `arrival` (TAGO 공항 식별자, 예: `NAARKSS`; 일반 IATA 3자리 코드와 다를 수 있음). **실시간 지연/결항 또는 국제선 조회가 아님** |
 | P1 | 한국은행 ECOS `ecos_series` | `ECOS_API_KEY` | `OMARI_LIFE_PUBLIC_ENABLED` | `statCode`, `cycle`, `start`, `end`, 선택 `itemCode` |
 | P1 | 국토부 아파트 매매 `apt_sales` | `DATA_GO_KR_SERVICE_KEY` | `OMARI_LIFE_PUBLIC_ENABLED` | `districtCode`(법정동 5자리), `month`(YYYYMM). **XML 원문 일부 반환**, 매매신고·수정 가능 |
 | P1 | YouTube 동영상 메타데이터 `youtube_video` | `YOUTUBE_DATA_API_KEY` | `OMARI_YOUTUBE_ENABLED` | `videoId`(11자리), `videos.list` 조회. 검색·업로드·댓글 쓰기 없음 |
