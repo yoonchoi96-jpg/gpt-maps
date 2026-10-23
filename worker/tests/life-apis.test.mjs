@@ -85,7 +85,7 @@ test("Home Assistant never permits arbitrary URLs or writes and only exposes sen
   const old=globalThis.fetch;let calls=0;
   globalThis.fetch=async(url,opts)=>{
     calls++;
-    assert.equal(url,"https://home.example.org/api/states/sensor.temperature");
+    assert.equal(String(url),"https://home.example.org/api/states/sensor.temperature");
     assert.equal(opts.method,"GET");
     assert.ok(opts.headers.Authorization.startsWith("Bearer "));
     return Response.json({entity_id:"sensor.temperature",state:"22.5",
