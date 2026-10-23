@@ -44,7 +44,9 @@ test("MCP basic JSON-RPC methods work with bearer auth",async()=>{
  assert.equal((await body(init)).result.serverInfo.name,"gpt-maps-naver");
  const listed=await handler.fetch(post("tools/list",{},headers),env);
  const names=(await body(listed)).result.tools.map(x=>x.name);
- assert.equal(names.length,8);
+ assert.equal(names.length,10);
+ assert.ok(names.includes("get_omari_life_status"));
+ assert.ok(names.includes("query_omari_life_api"));
  assert.ok(names.includes("search_naver_hub"));
  assert.ok(names.includes("get_naver_search_trend"));
  assert.ok(names.includes("get_naver_shopping_insight"));
