@@ -226,29 +226,16 @@ test("NAVER unavailable network is distinguished from credential failures",async
 });
 
 
-test("Transport probe never transmits credentials, auth codes, or session data",async()=>{
+test("Retired transport probe stays closed and never contacts NAVER",async()=>{
   const saved=globalThis.fetch;
-  const seen=[];
-  globalThis.fetch=async (url,init)=>{
-    seen.push({url:String(url),method:init.method,body:init.body||"",redirect:init.redirect});
-    return new Response("",{status:401});
-  };
+  let calls=0;
+  globalThis.fetch=async()=>{calls++;throw Error("retired endpoint must not fetch")};
   try{
     const res=await handler.fetch(req("/auth/network-check"),defaultEnv);
-    assert.equal(res.status,200);
-    const body=await res.json();
-    assert.equal(body.diagnostic,"naver_oauth_transport");
-    assert.equal(body.credentials_sent,false);
-    assert.equal(body.checks.length,3);
-    assert.equal(seen.length,3);
-    for(const call of seen){
-      assert.equal(call.redirect,"manual");
-      assert.ok(call.url.startsWith("https://"));
-      assert.ok(!call.url.includes("test-secret-only-on-backend"));
-      assert.ok(!call.body.includes("test-secret-only-on-backend"));
-      assert.ok(!call.body.includes("test-client-id"));
-    }
-  } finally {globalThis.fetch=saved}
+    assert.equal(res.status,410);
+    assert.equal(calls,0);
+    assert.match(await res.text(),/Diagnostic closed/);
+  }finally{globalThis.fetch=saved}
 });
 
 test("NAVER token redirect is classified safely and never followed",async()=>{
