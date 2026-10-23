@@ -70,6 +70,15 @@ Use this skill for Korean map/place requests, '네이버 지도에서 찾아줘'
 - Maps Dynamic Map and server-side search may have usage limits/costs. Maintain no-extra-paid-calls policy; Directions5 stays off absent explicit authorization and billing safeguards.
 - When access is missing, say 'not connected here' instead of 'API unavailable globally'. Avoid invented NAVER search results, real-time traffic/ETA, permissions, or successful writes.
 
+## Omari 생활 API 9종 (2026-10-23)
+
+- In this repository the private Cloudflare Worker now includes `worker/src/life-apis.js`, with nine provider groups and ten read-only operations, plus owner-only `/api/life/status` and `/api/life/query`. See [docs/omari-life-apis.md](../../../docs/omari-life-apis.md).
+- When an authenticated MCP connection actually exposes `get_omari_life_status` and `query_omari_life_api`, prefer those for provider status and reads. Do not assume this ChatGPT conversation has a direct MCP connection.
+- Supported groups: TAGO bus arrivals, KMA weather, AirKorea pollution, TourAPI, TAGO domestic flight schedule, BOK ECOS, MOLIT apartment transactions, YouTube videos.list, Google Places (New), Home Assistant sensor state. PublicData services may require individual application approvals even when sharing a key.
+- All new provider flags are **false by default**. Never enable `OMARI_GOOGLE_PLACES_ENABLED` or `OMARI_GOOGLE_PLACES_BILLING_APPROVED` without explicit user authorization of billing and enforced quotas. Do not infer free calls from free tiers. Home Assistant is sensor-read-only; no device control or local-network exposure.
+- Status only means keys and flags are present, not that upstream API calls or permissions have been tested. If unavailable, use real alternative connected tools and cite their true source.
+- This is implemented in the accessible `gpt-maps` repository; do not claim it was installed into an unrelated Omari core repository unless that repository is independently inspected and updated.
+
 ## Response contract
 
 Answer the user's immediate map task first. State which source was actually queried, what was verified, and what remains unverified. Provide working map/Notion links if relevant. Offer next steps only for real missing authorization, billing constraints, or required user decisions.
