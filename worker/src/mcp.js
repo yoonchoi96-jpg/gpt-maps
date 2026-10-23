@@ -9,6 +9,7 @@
  */
 import { featureRequest } from "./places-and-routes.js";
 import { hubSearch, hubTrend, hubShoppingInsight, hubStatus, HUB_SEARCH_TYPES } from "./naver-api-hub.js";
+import { lifeCall, lifeStatus, LIFE_ACTIONS } from "./life-apis.js";
 
 const VERSION = "2025-06-18";
 const TOKEN_LIFETIME = 12 * 60 * 60;
@@ -166,6 +167,16 @@ const HUB_TOOLS=[
     annotations:{readOnlyHint:true,openWorldHint:true},
   },
 ];
+const LIFE_TOOLS=[
+  {name:"get_omari_life_status",title:"Omari life API status",
+   description:"Read configuration-only status for transport, weather/air, tourism, flights, ECOS, real estate, YouTube, Google Places and Home Assistant. No provider call.",
+   inputSchema:objectSchema({}),annotations:{readOnlyHint:true,openWorldHint:false}},
+  {name:"query_omari_life_api",title:"Query enabled Omari life provider",
+   description:"Read a fixed, validated provider operation. Defaults to disabled; Google Places requires separate paid billing approval. Never call an API on behalf of the user if not enabled.",
+   inputSchema:objectSchema({action:{type:"string",enum:LIFE_ACTIONS},
+     params:{type:"object",description:"Validated provider-specific query parameters. See docs/omari-life-apis.md."}},["action"]),
+   annotations:{readOnlyHint:true,openWorldHint:true}},
+];
 const PAID_ROUTE_TOOL={
   name:"get_naver_driving_route",title:"Get driving route",
   description:"Get a NAVER Cloud Directions5 driving route only when the owner explicitly enabled paid APIs. This call can incur charges; do not use without user approval.",
@@ -178,7 +189,7 @@ const PAID_ROUTE_TOOL={
   annotations:{readOnlyHint:true,openWorldHint:true},
 };
 function tools(env){
-  const base=[...MCP_TOOLS,...HUB_TOOLS];
+  const base=[...MCP_TOOLS,...HUB_TOOLS,...LIFE_TOOLS];
   return env.ENABLE_PAID_DIRECTIONS==="true"&&env.NAVER_MAPS_CLIENT_SECRET
     ?[...base,PAID_ROUTE_TOOL]:base;
 }
@@ -218,6 +229,15 @@ function drivingLinks(args,env){
     route_calculated:false,charged_api_called:false};
 }
 async function callTool(name,args,env){
+  if(name==="get_omari_life_status")return toolReply(lifeStatus(env));
+  if(name==="query_omari_life_api"){
+    if(!args||!LIFE_ACTIONS.includes(args.action)||
+       (args.params!==undefined&&(!args.params||typeof args.params!=="object"||Array.isArray(args.params))))
+      return toolReply({error:"Invalid life API action or parameters."},true);
+    const r=await lifeCall(env,args.action,args.params||{});
+    let data;try{data=await r.json()}catch{return toolReply({error:"Invalid provider response."},true)}
+    return toolReply(data,!r.ok);
+  }
   // Status is safe to inspect even before HUB credentials are set.
   if(name==="get_naver_hub_status")return toolReply(hubStatus(env));
   if(name==="search_naver_hub"||name==="get_naver_search_trend"||
